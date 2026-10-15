@@ -100,10 +100,11 @@ test('every game builds a full session that can be solved', async () => {
       for (const c of cs) {
         if (c.type === 'starts') assert.equal(c.options.filter((o) => o.letter === c.letter).length, 1);
         if (c.type === 'bubbles') {
-          assert.equal(c.options.length, 6);
-          assert.equal(new Set(c.options).size, 6);
-          assert.equal(c.options.filter((l) => l === c.letter).length, 1);
-          for (const o of c.options) if (o !== c.letter) assert.ok(!soundConflict(o, c.letter));
+          assert.equal(c.need, 3);
+          assert.ok(c.pool.length >= 6);
+          assert.equal(new Set(c.pool).size, c.pool.length);
+          assert.ok(!c.pool.includes(c.letter));
+          for (const o of c.pool) assert.ok(!soundConflict(o, c.letter));
         }
         if (c.type === 'build') {
           // Tapping the right tile for each slot in turn finishes the word.

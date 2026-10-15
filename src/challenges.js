@@ -24,11 +24,14 @@ export function makeStarts(rng) {
   return { type: 'starts', ...buildQuestion(target, rng), word: target };
 }
 
+// A wave: pop `need` bubbles carrying the letter. `pool` holds the other letters
+// that float by; none of them sounds like the target.
+export const BUBBLES_NEEDED = 3;
 export function makeBubbles(rng, avoid = []) {
   const letters = LETTERS.map((l) => l.ch);
   const target = pick(letters.filter((l) => !avoid.includes(l)), rng);
-  const distractors = shuffle(letters.filter((l) => !soundConflict(l, target)), rng).slice(0, 5);
-  return { type: 'bubbles', letter: target, options: shuffle([target, ...distractors], rng) };
+  const pool = shuffle(letters.filter((l) => !soundConflict(l, target)), rng).slice(0, 8);
+  return { type: 'bubbles', letter: target, pool, need: BUBBLES_NEEDED };
 }
 
 export function makeBuild(rng, avoid = []) {

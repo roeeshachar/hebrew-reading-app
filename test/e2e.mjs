@@ -80,12 +80,24 @@ try {
       }
       await page.locator('.opt').nth(c.options.findIndex((o) => o.id === c.target.id)).click();
     } else if (c.type === 'bubbles') {
-      if (makeMistake) {
-        await page.click(`[data-bub="${c.options.find((l) => l !== c.letter)}"]`, { force: true });
-        await page.waitForSelector('.banner.try');
-        await page.waitForFunction(() => !document.querySelector('.banner.try'));
-      }
-      await page.click(`[data-bub="${c.letter}"]`, { force: true });
+      // Shoot the first visible bubble with the wrong letter, then three with the right one.
+      const tap = async (wantTarget) => {
+        const p = await page.waitForFunction(({ letter, wantTarget }) => {
+          const arena = document.querySelector('#arena').getBoundingClientRect();
+          const b = [...document.querySelectorAll('#arena .bub')].find((n) => {
+            const r = n.getBoundingClientRect();
+            return !n.classList.contains('pop') && !n.classList.contains('bonk') && (n.dataset.letter === letter) === wantTarget
+              && r.top > arena.top + 8 && r.bottom < arena.bottom - 90 && r.left > arena.left && r.right < arena.right;
+          });
+          if (!b) return null;
+          const r = b.getBoundingClientRect();
+          return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        }, { letter: c.letter, wantTarget }, { timeout: 8000 });
+        const { x, y } = await p.jsonValue();
+        await page.mouse.click(x, y);
+      };
+      if (makeMistake) { await tap(false); await page.waitForTimeout(700); }
+      for (let n = 0; n < c.need; n++) { await tap(true); await page.waitForTimeout(450); }
     } else {
       const { st } = await page.evaluate(() => window.__challenge());
       void st;

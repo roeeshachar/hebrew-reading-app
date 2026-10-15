@@ -78,11 +78,6 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .abg{font-size:34px;font-weight:800;color:var(--ink);letter-spacing:2px}
 .pic{width:130px;height:130px;border-radius:50%;background:#fff;margin:8px auto 0;display:grid;place-items:center;font-size:72px;box-shadow:0 6px 0 var(--line);position:relative}
 .pic small{position:absolute;bottom:-4px;inset-inline-end:-6px;width:46px;height:46px;background:var(--sun);border-radius:50%;font-size:22px;display:grid;place-items:center;box-shadow:0 4px 0 #e3a912}
-.bubbles{flex:1;display:grid;grid-template-columns:repeat(3,1fr);align-content:center;gap:22px 12px;margin:10px 0 70px;min-height:0}
-.bub{border-radius:50%;aspect-ratio:1;align-self:center;font-size:58px;font-weight:800;display:grid;place-items:center;box-shadow:inset -6px -8px 0 rgba(0,0,0,.08),0 5px 0 rgba(29,43,79,.15);animation:float 3s ease-in-out infinite}
-.bub.b0{background:#bfe8ff}.bub.b1{background:#ffd6e7;animation-delay:-1s}.bub.b2{background:#d9f5c8;animation-delay:-2s}
-.bub.retry{animation:wob .4s}.bub.dim{opacity:.35;animation:none}.bub.pop{background:var(--mint);color:#fff;animation:pop .35s}
-@keyframes float{50%{transform:translateY(-8px)}}
 @keyframes pop{50%{transform:scale(1.25)}}
 .slots{display:flex;justify-content:center;gap:8px;margin-top:16px;flex:none}
 .slot{width:64px;height:78px;border-radius:18px;border:4px dashed #9bc3d6;background:rgba(255,255,255,.55);display:grid;place-items:center;font-size:48px;font-weight:800}
@@ -105,6 +100,26 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 #app.boss .sound{width:104px;height:104px;font-size:62px;margin-top:6px}
 #app.boss .pic{width:96px;height:96px;font-size:54px}
 #app.boss .opts{margin-top:10px}#app.boss .opt{aspect-ratio:1.7;font-size:52px}
-#app.boss .bubbles{margin-bottom:76px}#app.boss .bub{font-size:44px}
-#app.boss .tile{height:68px}#app.boss .slot{height:64px}
+/* bubble arena */
+#app{--bs:78px}#app.boss{--bs:62px}
+.bubprompt{display:flex;align-items:center;gap:14px;flex:none;margin-top:6px}
+.bubtext{flex:1}
+.hits{display:flex;gap:8px;margin-top:6px;direction:rtl}
+.hits i{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--ink)}
+.hits i.on{background:var(--mint);border-color:var(--mint)}
+.sound.mini{width:92px;height:92px;font-size:56px;margin:0;flex:none}
+.sound.mini small{width:38px;height:38px;font-size:18px}
+.arena{position:relative;flex:1;margin-top:8px;overflow:hidden;border-radius:26px;background:linear-gradient(#cfeefa,#eaf8fd);min-height:0;touch-action:manipulation}
+.arena .bub{position:absolute;left:0;top:0;width:var(--bs);height:var(--bs);border-radius:50%;display:grid;place-items:center;font-size:calc(var(--bs) * .72);font-weight:800;line-height:1;cursor:pointer;will-change:transform;user-select:none;box-shadow:inset -6px -8px 0 rgba(0,0,0,.08),inset 5px 6px 0 rgba(255,255,255,.55);z-index:2}
+.arena .bub.b0{background:#bfe8ff}.arena .bub.b1{background:#ffd6e7}.arena .bub.b2{background:#d9f5c8}
+.arena .bub.pop{background:var(--mint);color:#fff;transition:opacity .25s;opacity:0}
+.arena .bub.pop::after{content:'💥';position:absolute;font-size:calc(var(--bs) * .8)}
+.arena .bub.bonk{animation:wob .45s;opacity:.8}
+.arena .bub.hint{outline:5px solid var(--sun);outline-offset:3px;animation:glow 1s infinite}
+@keyframes glow{50%{outline-color:#fff0b3}}
+.arrow{position:absolute;left:0;top:0;width:8px;height:46px;z-index:3;background:linear-gradient(#7a4b1f,#a8652a);border-radius:3px;pointer-events:none}
+.arrow::before{content:'';position:absolute;left:-6px;top:-12px;border:10px solid transparent;border-bottom:16px solid var(--ink);border-top:0}
+.shooter{position:absolute;left:50%;bottom:6px;width:68px;height:68px;margin-left:-34px;z-index:4;pointer-events:none}
+.shooter .base{position:absolute;left:-6px;right:-6px;bottom:0;height:36px;border-radius:18px;background:var(--coral);box-shadow:0 5px 0 #d4493a,inset 0 -8px 0 rgba(0,0,0,.12)}
+.shooter .barrel{position:absolute;left:50%;bottom:26px;width:24px;height:52px;margin-left:-12px;border-radius:10px 10px 4px 4px;border-top:8px solid #fff;background:var(--ink);transform-origin:50% 100%;transition:transform .12s}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
