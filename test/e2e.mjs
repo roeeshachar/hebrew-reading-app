@@ -84,14 +84,22 @@ try {
   assert.equal((await page.evaluate(() => window.__lab())).shown, 'דל');
   await page.click('[data-clr]');
   assert.equal((await page.evaluate(() => window.__lab())).shown, '');
-  await page.click('[data-v=kamatz]');
+  // The vowel panel is empty until a letter is tapped, then shows that letter with each vowel.
+  assert.equal(await page.locator('.vow').count(), 0, 'no vowel panel before a letter');
   await page.click('[data-k=מ]');
-  assert.equal((await page.evaluate(() => window.__lab())).shown, 'םָ', 'final form with vowel');
+  assert.equal(await page.locator('.vow button').count(), 8);
+  assert.equal(await page.locator('.vow button').first().innerText(), 'מ');
+  assert.equal((await page.evaluate(() => window.__lab())).shown, 'ם', 'final form while it is the last letter');
+  await page.click('[data-v=kamatz]');
+  assert.equal((await page.evaluate(() => window.__lab())).shown, 'ם\u05B8');
+  await page.click('[data-v=chirik]'); // try another vowel on the same letter
+  assert.equal((await page.evaluate(() => window.__lab())).seq.length, 1, 'vowel replaces, does not add');
   await page.click('[data-k=א]');
-  assert.equal((await page.evaluate(() => window.__lab())).shown, 'מָאָ', 'the chosen vowel stays selected');
+  assert.equal((await page.evaluate(() => window.__lab())).shown, 'מִא');
   await page.click('[data-del]');
-  assert.equal((await page.evaluate(() => window.__lab()).then((l) => l.seq.length)), 1, 'delete removes letter and vowel');
-  await page.click('[data-v=shuruk]'); await page.click('[data-k=ב]');
+  assert.equal((await page.evaluate(() => window.__lab()).then((l) => l.seq.length)), 1, 'delete removes the last letter');
+  assert.equal(await page.locator('.vow').count(), 0, 'panel closes after delete');
+  await page.click('[data-k=ב]'); await page.click('[data-v=shuruk]');
   await page.screenshot({ path: `${out}/lab-nikud.png` });
   await page.click('[data-play]');
   const said = await page.evaluate(() => window.__said);

@@ -31,3 +31,9 @@ export function display(seq) {
   const shaped = endsInLetter && FINAL[first] ? FINAL[first] + rest : last;
   return seq.slice(0, -1).join('') + shaped;
 }
+
+// Gives the last letter a vowel (or none, with null) without adding a new token.
+export function applyVowel(seq, letter, vowelId) {
+  if (!seq.length) return seq;
+  return [...seq.slice(0, -1), makeToken(letter, vowelId)];
+}

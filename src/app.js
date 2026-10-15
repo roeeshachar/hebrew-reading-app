@@ -1,5 +1,5 @@
 import { LETTERS, LETTER_ID, VOWELS, WORDS } from './content.js';
-import { makeToken, addToken, removeLast, display } from './lab-logic.js';
+import { MAX_TOKENS, makeToken, addToken, removeLast, applyVowel, display } from './lab-logic.js';
 import { buildRound, ROUND_SIZE } from './rounds.js';
 import * as audio from './audio.js';
 import * as progress from './progress.js';
@@ -9,7 +9,8 @@ const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>'
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- state ----
-let lab = { seq: [], vowel: null };
+// pending: the letter just tapped, whose vowel can still be chosen.
+let lab = { seq: [], pending: null };
 let game = null; // { qs, i, stars, misses, answered, picked }
 
 // ---- shared pieces ----
@@ -75,8 +76,17 @@ const screens = {
     const empty = lab.seq.length === 0;
     const chars = lab.seq.map((t, i) => `<span class="c ${i === lab.seq.length - 1 ? 'last' : ''}">${esc(t)}</span>`).join('');
     const shown = display(lab.seq);
-    const vow = [`<button class="${lab.vowel == null ? 'on' : ''}" data-v="" aria-label="בלי ניקוד">—</button>`]
-      .concat(VOWELS.map((v) => `<button class="${lab.vowel === v.id ? 'on' : ''}" data-v="${v.id}" aria-label="${v.name}">${v.sample}</button>`)).join('');
+    const p = lab.pending;
+    const last = lab.seq[lab.seq.length - 1];
+    const options = p
+      ? [{ id: null, name: 'בלי ניקוד' }, ...VOWELS].map((v) => {
+        const tok = makeToken(p, v.id);
+        return `<button class="${tok === last ? 'on' : ''}" data-v="${v.id || ''}" aria-label="${v.name}">${esc(tok)}</button>`;
+      }).join('')
+      : '';
+    const panel = p
+      ? `<div class="vlab">בחרו ניקוד ל־${p}</div><div class="vow">${options}</div>`
+      : `<div class="vhint">לחצו על אות ואז בחרו ניקוד</div>`;
     const keys = LETTERS.map((l) => `<button class="k" data-k="${l.ch}">${l.ch}</button>`).join('');
     return `
       <div class="top">${homeBtn()}<div class="pill">🧪 מעבדה</div></div>
@@ -85,7 +95,7 @@ const screens = {
         <button class="act play ${empty ? 'off' : ''}" data-play ${empty ? 'disabled' : ''}>🔊 השמע</button>
         <button class="act ${empty ? 'off' : ''}" data-del aria-label="מחק אות" ${empty ? 'disabled' : ''}>⌫</button>
         <button class="act ${empty ? 'off' : ''}" data-clr aria-label="נקה הכול" ${empty ? 'disabled' : ''}>🗑</button></div>
-      <div class="vlab">ניקוד</div><div class="vow">${vow}</div>
+      <div class="vpanel">${panel}</div>
       <div class="keys">${keys}</div>${ttsNote()}<span hidden id="shown">${esc(shown)}</span>`;
   },
 };
@@ -145,10 +155,17 @@ function next() {
 
 // ---- lab ----
 function tapLetter(ch) {
-  const token = makeToken(ch, lab.vowel);
-  lab.seq = addToken(lab.seq, token);
-  const id = LETTER_ID[ch];
-  audio.play([[lab.vowel ? `syllable/${id}-${lab.vowel}` : `letter-sound/${id}`, token]]);
+  if (lab.seq.length >= MAX_TOKENS) return;
+  lab.seq = addToken(lab.seq, ch);
+  lab.pending = ch;
+  audio.play([[`letter-sound/${LETTER_ID[ch]}`, ch]]);
+  render();
+}
+function chooseVowel(vowelId) {
+  if (!lab.pending) return;
+  lab.seq = applyVowel(lab.seq, lab.pending, vowelId);
+  const id = LETTER_ID[lab.pending];
+  audio.play([[vowelId ? `syllable/${id}-${vowelId}` : `letter-sound/${id}`, lab.seq[lab.seq.length - 1]]]);
   render();
 }
 function playLab() {
@@ -170,10 +187,10 @@ app.addEventListener('click', (e) => {
   if ('opt' in t.dataset) return choose(+t.dataset.opt);
   if ('next' in t.dataset) return next();
   if ('k' in t.dataset) return tapLetter(t.dataset.k);
-  if ('v' in t.dataset) { lab.vowel = t.dataset.v || null; return render(); }
+  if ('v' in t.dataset) return chooseVowel(t.dataset.v || null);
   if ('play' in t.dataset) return playLab();
-  if ('del' in t.dataset) { lab.seq = removeLast(lab.seq); return render(); }
-  if ('clr' in t.dataset) { lab.seq = []; audio.stop(); return render(); }
+  if ('del' in t.dataset) { lab.seq = removeLast(lab.seq); lab.pending = null; return render(); }
+  if ('clr' in t.dataset) { lab.seq = []; lab.pending = null; audio.stop(); return render(); }
 });
 // iOS needs a user gesture before it will play anything.
 document.addEventListener('pointerdown', () => { audio.state.unlocked = true; }, { once: true });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeToken, addToken, removeLast, display, MAX_TOKENS } from '../src/lab-logic.js';
+import { makeToken, addToken, removeLast, applyVowel, display, MAX_TOKENS } from '../src/lab-logic.js';
 import { buildRound, buildQuestion } from '../src/rounds.js';
 import { WORDS, LETTERS, VOWELS, soundConflict } from '../src/content.js';
 
@@ -65,4 +65,15 @@ test('rounds: 5 questions, 4 unique options, one correct, no confusable letters'
 
 test('every word can form a question', () => {
   for (const w of WORDS) assert.equal(buildQuestion(w).options.length, 4);
+});
+
+test('choosing a vowel changes the last letter only, and can be changed again or removed', () => {
+  let seq = ['ד', 'מ'];
+  seq = applyVowel(seq, 'מ', 'kamatz');
+  assert.deepEqual(seq, ['ד', makeToken('מ', 'kamatz')]);
+  seq = applyVowel(seq, 'מ', 'chirik');
+  assert.deepEqual(seq, ['ד', makeToken('מ', 'chirik')]);
+  seq = applyVowel(seq, 'מ', null);
+  assert.deepEqual(seq, ['ד', 'מ']);
+  assert.deepEqual(applyVowel([], 'מ', 'kamatz'), []);
 });

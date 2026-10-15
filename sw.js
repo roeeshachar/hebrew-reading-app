@@ -1,5 +1,5 @@
 // Offline shell. Bump VERSION when files change so phones pick up the new copy.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'src/app.js', 'src/audio.js', 'src/content.js', 'src/lab-logic.js', 'src/rounds.js', 'src/progress.js',

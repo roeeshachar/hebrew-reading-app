@@ -65,6 +65,8 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .act{height:60px;border-radius:20px;display:grid;place-items:center;font-size:28px;background:#fff;box-shadow:0 5px 0 var(--line);flex:1}
 .act.play{flex:2.2;background:var(--mint);color:#fff;font-size:24px;font-weight:800;box-shadow:0 5px 0 #1d8f72;display:flex;gap:10px;align-items:center;justify-content:center}
 .act.off{opacity:.4}
+.vpanel{flex:none;min-height:128px;margin-top:6px;display:flex;flex-direction:column;justify-content:center}
+.vhint{text-align:center;color:var(--mut);font-size:17px;background:rgba(255,255,255,.55);border-radius:18px;padding:18px 12px}
 .vlab{font-size:14px;font-weight:700;color:var(--mut);margin-top:8px}
 .vow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px;flex:none}
 .vow button{height:46px;border-radius:14px;background:#fff;box-shadow:0 3px 0 var(--line);font-size:28px;font-weight:700;line-height:1;padding-top:3px}
