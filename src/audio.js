@@ -63,16 +63,26 @@ function speak(text) {
 }
 
 // items: [[clipKey, fallbackText], ...] played in order. A newer call cancels this one.
-export async function play(items) {
-  stop();
+let running = Promise.resolve();
+
+// By default a new call cuts off whatever is playing. With { queue: true } it waits
+// for the current sound to finish first, so the last syllable is never skipped.
+// A later non-queued call still cancels everything, queued or not.
+export function play(items, { queue = false } = {}) {
+  if (!queue) stop();
   const id = runId;
-  for (const [key, text] of items) {
-    if (id !== runId) return;
-    if (key && clips.has(key)) {
-      try { await playClip(key); continue; } catch { /* use TTS below */ }
+  const before = queue ? running : Promise.resolve();
+  const run = before.then(async () => {
+    for (const [key, text] of items) {
+      if (id !== runId) return;
+      if (key && clips.has(key)) {
+        try { await playClip(key); continue; } catch { /* use TTS below */ }
+      }
+      if (text) await speak(text);
     }
-    if (text) await speak(text);
-  }
+  });
+  running = run;
+  return run;
 }
 
 // Whole-sequence playback for the Word Lab: blend recorded syllables when every

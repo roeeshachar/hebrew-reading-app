@@ -130,6 +130,12 @@ try {
       }
     }
     await page.waitForSelector('.banner.good');
+    if (c.type === 'build' || c.type === 'syllable') {
+      // The last letter or syllable is said, then the word, then the praise, in that order.
+      const lastPiece = c.type === 'build' ? (({ 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' })[c.slots.at(-1)] || c.slots.at(-1)) : c.parts.at(-1);
+      await page.waitForFunction(() => window.__said.at(-1) === 'כל הכבוד');
+      assert.deepEqual((await page.evaluate(() => window.__said)).slice(-3), [lastPiece, c.word.he, 'כל הכבוד'], `${c.type}: the last piece is read before the word`);
+    }
   }
   for (const mode of ['bubbles', 'build', 'syllable', 'boss']) {
     await page.goto(base + '#home');

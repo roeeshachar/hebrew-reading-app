@@ -209,7 +209,7 @@ function mountArena(c) {
       document.querySelectorAll('.hits i').forEach((dot, k) => dot.classList.toggle('on', k < n));
     },
     onWrong: () => { session.misses++; },
-    onDone: () => finishChallenge(),
+    onDone: () => finishChallenge([], true),
   });
 }
 function go(name) {
@@ -233,14 +233,14 @@ function say() {
   }[c.type];
   audio.play(items);
 }
-function finishChallenge(lead = []) {
+function finishChallenge(lead = [], queue = false) {
   session.answered = true;
   session.st.hit = true;
   const c0 = session.cs[session.i];
   if (session.misses < (c0.type === 'bubbles' ? 3 : 2)) { session.stars++; progress.addStar(); }
   render();
   const c = session.cs[session.i];
-  audio.play(lead.concat(c.word ? [[`word/${c.word.id}`, c.word.he], ['prompt/well-done', 'כל הכבוד']] : [['prompt/well-done', 'כל הכבוד']]));
+  audio.play(lead.concat(c.word ? [[`word/${c.word.id}`, c.word.he], ['prompt/well-done', 'כל הכבוד']] : [['prompt/well-done', 'כל הכבוד']]), { queue });
 }
 // A wrong answer never ends in failure: after two misses the right answer is shown.
 async function wrong(marker, speakItems) {
@@ -315,8 +315,9 @@ function tapTile(i) { // build and syllable
 function placeTile(i, c, st) {
   st.used.push(i); st.placed++; st.picked = null;
   const total = c.type === 'build' ? c.slots.length : c.parts.length;
-  if (st.placed >= total) return finishChallenge();
+  // Each piece is said, the last one too. The finished word follows once it ends.
   audio.play(c.type === 'build' ? [[`letter-sound/${LETTER_ID[c.tray[i]]}`, c.tray[i]]] : [[null, c.tray[i]]]);
+  if (st.placed >= total) return finishChallenge([], true);
   render();
 }
 function next() {
