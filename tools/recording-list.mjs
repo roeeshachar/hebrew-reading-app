@@ -15,6 +15,9 @@ const table = (rows) => ['| | להקליט | שם קובץ | הערה |', '|---|
 const prompts = [
   ['prompt/which-starts-with', 'איזו תמונה מתחילה בצליל', 'לפני צליל האות'],
   ['prompt/try-again', 'כמעט! נסו שוב', 'חם ועדין, בלי אכזבה'],
+  ['prompt/pop-letter', 'פוצצו את הבועה עם האות', 'לפני צליל האות'],
+  ['prompt/build-word', 'בנו את המילה', 'לפני המילה'],
+  ['prompt/feed-monster', 'האכילו את המפלצת', 'לפני המילה'],
   ['prompt/well-done', 'כל הכבוד!', ''],
 ];
 const sounds = LETTERS.map((l) => row(`letter-sound/${l.id}`, l.ch, 'הצליל בלבד ("דְּ"), לא השם "דלת"'));

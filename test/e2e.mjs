@@ -30,10 +30,6 @@ try {
   assert.equal(await page.locator('h1').innerText(), 'עולם הקריאה');
   await page.screenshot({ path: `${out}/home.png` });
 
-  // A station that is not built yet reacts but does not navigate.
-  await page.locator('.stn.soon').first().click();
-  assert.equal(await page.locator('.map').count(), 1);
-
   // --- starts-with game ---
   await page.click('[data-go=starts]');
   await page.waitForSelector('.opts');
@@ -72,6 +68,66 @@ try {
   await page.screenshot({ path: `${out}/round-end.png` });
   assert.match(await page.locator('.pill').innerText(), /\d/);
 
+  // --- every game can be played to the end, with one gentle mistake along the way ---
+  async function solveCurrent(makeMistake) {
+    const { c } = await page.evaluate(() => window.__challenge());
+    if (c.type === 'starts') {
+      if (makeMistake) {
+        const wrong = c.options.findIndex((o) => o.id !== c.target.id);
+        await page.locator('.opt').nth(wrong).click();
+        await page.waitForSelector('.banner.try');
+        await page.waitForFunction(() => !document.querySelector('.banner.try'));
+      }
+      await page.locator('.opt').nth(c.options.findIndex((o) => o.id === c.target.id)).click();
+    } else if (c.type === 'bubbles') {
+      if (makeMistake) {
+        await page.click(`[data-bub="${c.options.find((l) => l !== c.letter)}"]`, { force: true });
+        await page.waitForSelector('.banner.try');
+        await page.waitForFunction(() => !document.querySelector('.banner.try'));
+      }
+      await page.click(`[data-bub="${c.letter}"]`, { force: true });
+    } else {
+      const { st } = await page.evaluate(() => window.__challenge());
+      void st;
+      const total = c.type === 'build' ? c.slots.length : c.parts.length;
+      const base = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
+      for (let k = 0; k < total; k++) {
+        const want = c.type === 'build' ? base[c.slots[k]] || c.slots[k] : c.parts[k];
+        const state = await page.evaluate(() => window.__challenge().st.used);
+        const idx = c.tray.findIndex((t, n) => t === want && !state.includes(n));
+        if (makeMistake && k === 0) {
+          const bad = c.tray.findIndex((t, n) => t !== want && !state.includes(n));
+          await page.click(`[data-tile="${bad}"]`);
+          await page.waitForSelector('.banner.try');
+          await page.waitForFunction(() => !document.querySelector('.banner.try'));
+        }
+        await page.click(`[data-tile="${idx}"]`);
+      }
+    }
+    await page.waitForSelector('.banner.good');
+  }
+  for (const mode of ['bubbles', 'build', 'syllable', 'boss']) {
+    await page.goto(base + '#home');
+    await page.click(`[data-go=${mode}]`);
+    await page.waitForSelector('.top');
+    if (mode === 'bubbles') await page.screenshot({ path: `${out}/game-bubbles.png` });
+    if (mode === 'build') await page.screenshot({ path: `${out}/game-build.png` });
+    if (mode === 'syllable') await page.screenshot({ path: `${out}/game-syllable.png` });
+    if (mode === 'boss') await page.screenshot({ path: `${out}/game-boss.png` });
+    for (let k = 0; k < 5; k++) {
+      await solveCurrent(k === 0);
+      if (k === 0 && mode === 'build') await page.screenshot({ path: `${out}/game-build-done.png` });
+      await page.click('[data-next]');
+    }
+    await page.waitForSelector('.big');
+    if (mode === 'boss') await page.screenshot({ path: `${out}/boss-win.png` });
+    await page.click('[data-go=home]');
+    await page.waitForSelector('.map');
+    assert.equal(await page.locator(`[data-go=${mode}] .dots i.on`).count(), 1, `${mode} shows one finished round`);
+  }
+  await page.screenshot({ path: `${out}/home-progress.png` });
+  assert.equal(await page.locator('.abg').innerText(), 'אבג', 'first station shows Hebrew letters');
+
   // --- lab ---
   await page.click('[data-go=lab]');
   await page.waitForSelector('.keys');
@@ -108,6 +164,22 @@ try {
   for (let i = 0; i < 40; i++) await page.click('[data-k=ר]', { delay: 0 });
   assert.ok((await page.evaluate(() => window.__lab().seq.length)) <= 12);
   await page.click('[data-clr]'); await page.click('[data-play]', { force: true, timeout: 500 }).catch(() => {});
+
+  // --- every screen fits a small phone without scrolling ---
+  await page.setViewportSize({ width: 375, height: 667 });
+  for (const route of ['home', 'starts', 'bubbles', 'build', 'syllable', 'boss', 'lab']) {
+    await page.goto(base + '#' + route);
+    await page.waitForTimeout(150);
+    const over = await page.evaluate(() => {
+      const bad = [...document.querySelectorAll('#app *')].filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width && (r.bottom > innerHeight + 1 || r.right > innerWidth + 1 || r.left < -1);
+      }).map((el) => el.className || el.tagName);
+      return { scroll: document.documentElement.scrollHeight > innerHeight, bad: bad.slice(0, 5) };
+    });
+    assert.deepEqual(over, { scroll: false, bad: [] }, `${route} fits 375x667`);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
 
   // --- small phone (iPhone SE) ---
   await page.setViewportSize({ width: 375, height: 667 });

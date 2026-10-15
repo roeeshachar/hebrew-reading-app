@@ -59,3 +59,22 @@ export const WORDS = [
 export function soundConflict(a, b) {
   return a === b || SOUND_GROUPS.some((g) => g.includes(a) && g.includes(b));
 }
+
+// Words split into spoken syllables, with nikud. Used by the syllable monster.
+export const SYLLABLES = {
+  banana: ['בָּ', 'נָ', 'נָה'],
+  delet: ['דֶּ', 'לֶת'],
+  kelev: ['כֶּ', 'לֶב'],
+  chatul: ['חָ', 'תוּל'],
+  shemesh: ['שֶׁ', 'מֶשׁ'],
+  sefer: ['סֵ', 'פֶר'],
+  perach: ['פֶּ', 'רַח'],
+  yeled: ['יֶ', 'לֶד'],
+  gamal: ['גָּ', 'מָל'],
+  tapuz: ['תַּ', 'פּוּז'],
+  limon: ['לִי', 'מוֹן'],
+  chalon: ['חַ', 'לּוֹן'],
+  kadur: ['כַּ', 'דּוּר'],
+  nachash: ['נָ', 'חָשׁ'],
+  mechonit: ['מְ', 'כוֹ', 'נִית'],
+};

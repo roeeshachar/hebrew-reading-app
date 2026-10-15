@@ -1,6 +1,6 @@
-import { LETTERS, LETTER_ID, VOWELS, WORDS } from './content.js';
+import { LETTERS, LETTER_ID, VOWELS } from './content.js';
 import { MAX_TOKENS, makeToken, addToken, removeLast, applyVowel, display } from './lab-logic.js';
-import { buildRound, ROUND_SIZE } from './rounds.js';
+import { buildSession, buildAccepts, syllableAccepts, MODES } from './challenges.js';
 import * as audio from './audio.js';
 import * as progress from './progress.js';
 
@@ -11,7 +11,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ---- state ----
 // pending: the letter just tapped, whose vowel can still be chosen.
 let lab = { seq: [], pending: null };
-let game = null; // { qs, i, stars, misses, answered, picked }
+// One play-through of a game: five challenges, one after another.
+// st holds the on-screen state of the current challenge.
+let session = null;
+const freshState = () => ({ picked: null, placed: 0, used: [], hit: false });
 
 // ---- shared pieces ----
 const homeBtn = (visible = true) =>
@@ -20,56 +23,106 @@ const starsPill = () => `<div class="pill" aria-label="כוכבים">⭐ ${progr
 const ttsNote = () =>
   audio.state.ttsAvailable ? '' : `<div class="notice" role="status">🔇 אין קול עברי במכשיר. אפשר להמשיך לשחק.</div>`;
 
+
+// ---- how each kind of challenge looks ----
+const bannerGood = (text) => `<div class="banner good"><span class="e">🎉</span>${esc(text)}</div><button class="next" data-next>${session.i + 1 === session.cs.length ? 'סיימנו ▶' : 'עוד אחת ▶'}</button>`;
+const bannerTry = '<div class="banner try"><span class="e">🤔</span>כמעט! בוא ננסה עוד פעם</div>';
+
+const draw = {
+  starts(c) {
+    const opts = c.options.map((w, i) => {
+      let cls = 'opt';
+      if (session.answered) cls += w === c.target ? ' ok' : ' dim';
+      else if (session.st.picked === i) cls += ' retry';
+      return `<button class="${cls}" data-opt="${i}" ${session.answered ? 'disabled' : ''}>${w.emoji}<span>${esc(w.he)}</span></button>`;
+    }).join('');
+    return `<div class="prompt"><p class="sub">איזו תמונה מתחילה בצליל…</p>
+      <button class="sound" data-say aria-label="השמע שוב">${c.letter}<small>🔊</small></button></div>
+      <div class="opts">${opts}</div>`;
+  },
+  bubbles(c) {
+    const bubs = c.options.map((l, i) => {
+      let cls = `bub b${i % 3}`;
+      if (session.answered) cls += l === c.letter ? ' pop' : ' dim';
+      else if (session.st.picked === l) cls += ' retry';
+      return `<button class="${cls}" data-bub="${l}" ${session.answered ? 'disabled' : ''}>${l}</button>`;
+    }).join('');
+    return `<div class="prompt"><p class="sub">פוצצו את הבועה עם האות…</p>
+      <button class="sound" data-say aria-label="השמע שוב">${c.letter}<small>🔊</small></button></div>
+      <div class="bubbles">${bubs}</div>`;
+  },
+  build(c) {
+    const slots = c.slots.map((ch, i) => `<span class="slot ${i < session.st.placed ? 'full' : ''}">${i < session.st.placed ? ch : ''}</span>`).join('');
+    const tiles = c.tray.map((ch, i) => `<button class="tile ${session.st.picked === i ? 'retry' : ''}" data-tile="${i}" ${session.st.used.includes(i) ? 'hidden' : ''}>${ch}</button>`).join('');
+    return `<div class="prompt"><p class="sub">בנו את המילה</p>
+      <button class="pic" data-say aria-label="השמע שוב">${c.word.emoji}<small>🔊</small></button></div>
+      <div class="slots">${slots}</div><div class="tray">${tiles}</div>`;
+  },
+  syllable(c) {
+    const eaten = c.parts.slice(0, session.st.placed).map((p) => `<span class="chip">${esc(p)}</span>`).join('');
+    const tiles = c.tray.map((p, i) => `<button class="tile wide ${session.st.picked === i ? 'retry' : ''}" data-tile="${i}" ${session.st.used.includes(i) ? 'hidden' : ''}>${esc(p)}</button>`).join('');
+    return `<div class="prompt"><p class="sub">האכילו את המפלצת</p>
+      <button class="pic" data-say aria-label="השמע שוב">${c.word.emoji}<small>🔊</small></button></div>
+      <div class="monster"><span class="mon ${session.st.hit ? 'munch' : ''}">👾</span><div class="eaten">${eaten || '<span class="hint">הברה אחרי הברה</span>'}</div></div>
+      <div class="tray">${tiles}</div>`;
+  },
+};
+
+function footer(c) {
+  if (session.answered) {
+    const text = c.type === 'starts' ? `${c.target.he}! ${c.target.he} מתחיל ב־${c.letter}`
+      : c.type === 'bubbles' ? `האות ${c.letter}!`
+        : `${c.word.he}!`;
+    return bannerGood(text);
+  }
+  return session.st.picked != null ? bannerTry : '';
+}
+
 // ---- screens ----
 const screens = {
   home() {
-    const p = progress.get();
-    const dots = Math.min(3, Math.floor(p.rounds / 2));
-    const stn = (x, y, color, icon, name, opts = {}) => `
-      <button class="stn ${opts.soon ? 'soon' : ''}" style="left:${x}%;top:${y}%" data-go="${opts.go || ''}" data-soon="${opts.soon ? 1 : ''}">
-        <span class="b" style="background:${color}">${icon}${opts.dots != null ? `<span class="dots">${[1, 2, 3].map((i) => `<i class="${i <= opts.dots ? 'on' : ''}"></i>`).join('')}</span>` : ''}</span>
+    const rounds = progress.get().rounds;
+    const dots = (m) => Math.min(3, rounds[m] || 0);
+    const stn = (x, y, color, icon, name, go, mode) => `
+      <button class="stn" style="left:${x}%;top:${y}%" data-go="${go}">
+        <span class="b" style="background:${color}">${icon}<span class="dots">${[1, 2, 3].map((i) => `<i class="${i <= dots(mode) ? 'on' : ''}"></i>`).join('')}</span></span>
         <span class="n">${name}</span></button>`;
     return `
       <div class="top">${homeBtn(false)}${starsPill()}</div>
       <h1>עולם הקריאה</h1><p class="sub">בוא נשחק באותיות!</p>
       <div class="map">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M70 14 C 20 18, 90 32, 30 38 S 90 58, 32 64 S 80 90, 50 96" stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="1.5 3" vector-effect="non-scaling-stroke" stroke-linecap="round"/></svg>
-        ${stn(68, 14, '#ffd966', '🔤', 'מה מתחיל ב־…‏', { go: 'starts', dots })}
-        ${stn(30, 36, '#9fe3d0', '🫧', 'בועות האותיות', { soon: 1 })}
-        ${stn(68, 58, '#ffb3a7', '🧩', 'בונים מילה', { soon: 1 })}
-        ${stn(30, 78, '#c9b8ff', '👾', 'מפלצת ההברות', { soon: 1 })}
-        ${stn(68, 93, '#ffa86b', '🐉', 'קרב הבוס', { soon: 1 })}
+        ${stn(68, 14, '#ffd966', '<span class="abg">אבג</span>', 'מה מתחיל ב־…‏', 'starts', 'starts')}
+        ${stn(30, 36, '#9fe3d0', '🫧', 'בועות האותיות', 'bubbles', 'bubbles')}
+        ${stn(68, 58, '#ffb3a7', '🧩', 'בונים מילה', 'build', 'build')}
+        ${stn(30, 78, '#c9b8ff', '👾', 'מפלצת ההברות', 'syllable', 'syllable')}
+        ${stn(68, 93, '#ffa86b', '🐉', 'קרב הבוס', 'boss', 'boss')}
       </div>
       <button class="labbtn" data-go="lab">🧪 מעבדת המילים</button>${ttsNote()}`;
   },
 
-  starts() {
-    const q = game.qs[game.i];
-    const opts = q.options.map((w, i) => {
-      let cls = 'opt';
-      if (game.answered) cls += w === q.target ? ' ok' : ' dim';
-      else if (game.picked === i) cls += ' retry';
-      return `<button class="${cls}" data-opt="${i}" ${game.answered ? 'disabled' : ''}>${w.emoji}<span>${esc(w.he)}</span></button>`;
-    }).join('');
-    let banner = '';
-    if (game.answered) banner = `<div class="banner good"><span class="e">🎉</span>${esc(q.target.he)}! ${esc(q.target.he)} מתחיל ב־${q.letter}</div><button class="next" data-next>${game.i + 1 === game.qs.length ? 'סיימנו ▶' : 'עוד אחת ▶'}</button>`;
-    else if (game.picked != null) banner = `<div class="banner try"><span class="e">🤔</span>כמעט! בוא ננסה עוד פעם</div>`;
+  // All five games share this screen; the challenge decides what is drawn.
+  play() {
+    const c = session.cs[session.i];
+    const boss = session.mode === 'boss';
+    const left = session.cs.length - session.i - (session.answered ? 1 : 0);
+    const head = boss
+      ? `<div class="bosshead"><span class="boss ${session.st.hit ? 'hit' : ''}">🐉</span><div class="pips" aria-label="חיי הבוס">${session.cs.map((_, k) => `<i class="${k < left ? 'on' : ''}"></i>`).join('')}</div></div>`
+      : '';
+    const dotsRow = boss ? '' : `<div class="progressdots" aria-hidden="true">${session.cs.map((_, k) => `<i class="${k < session.i || (k === session.i && session.answered) ? 'on' : ''}"></i>`).join('')}</div>`;
     return `
-      <div class="top">${homeBtn()}${starsPill()}</div>
-      <div class="prompt"><p class="sub">איזו תמונה מתחילה בצליל…</p>
-        <button class="sound" data-say aria-label="השמע שוב">${q.letter}<small>🔊</small></button>
-        <div class="progressdots" aria-hidden="true">${game.qs.map((_, i) => `<i class="${i < game.i || (i === game.i && game.answered) ? 'on' : ''}"></i>`).join('')}</div></div>
-      <div class="opts">${opts}</div>${banner}`;
+      <div class="top">${homeBtn()}${starsPill()}</div>${head}${dotsRow}
+      ${draw[c.type](c)}${footer(c)}`;
   },
 
   roundEnd() {
-    const p = progress.get();
+    const boss = session.mode === 'boss';
     return `
       <div class="top">${homeBtn()}${starsPill()}</div>
-      <div class="center"><div class="big">🌟</div><h1>כל הכבוד!</h1>
-        <p class="sub">הרווחת ${game.stars} כוכבים הפעם</p></div>
-      <div class="stack"><button class="next static" data-go="starts">עוד סבב ▶</button>
-        <button class="labbtn" data-go="lab">🧪 למעבדת המילים</button></div>${p.stars ? '' : ''}`;
+      <div class="center"><div class="big">${boss ? '🏆' : '🌟'}</div><h1>${boss ? 'ניצחת את הבוס!' : 'כל הכבוד!'}</h1>
+        <p class="sub">הרווחת ${session.stars} כוכבים הפעם</p></div>
+      <div class="stack"><button class="next static" data-go="${session.mode}">${boss ? 'עוד קרב' : 'עוד סבב'} ▶</button>
+        <button class="labbtn" data-go="home">🗺 חזרה למפה</button></div>`;
   },
 
   lab() {
@@ -104,11 +157,12 @@ const screens = {
 function current() { return (location.hash.slice(1) || 'home').split('?')[0]; }
 function render() {
   const name = current();
-  if (name === 'starts' && (!game || game.done)) startRound();
-  const fn = screens[name] || screens.home;
+  if (MODES.includes(name) && (!session || session.mode !== name || session.done)) startSession(name);
+  const fn = MODES.includes(name) ? screens.play : (screens[name] || screens.home);
   app.innerHTML = fn();
   app.dataset.screen = name;
-  if (name === 'starts' && !game.answered && game.picked == null && !game.spoken) { game.spoken = true; sayQuestion(); }
+  app.classList.toggle('boss', name === 'boss');
+  if (MODES.includes(name) && !session.answered && !session.spoken) { session.spoken = true; say(); }
 }
 function go(name) {
   if (current() === name) render(); else location.hash = name;
@@ -116,40 +170,79 @@ function go(name) {
 window.addEventListener('hashchange', () => { audio.stop(); render(); });
 
 // ---- games ----
-function startRound() {
-  game = { qs: buildRound(), i: 0, stars: 0, misses: 0, answered: false, picked: null, done: false, spoken: false };
+function startSession(mode) {
+  session = { mode, cs: buildSession(mode), i: 0, stars: 0, misses: 0, answered: false, done: false, spoken: false, st: freshState() };
 }
-function sayQuestion() {
-  const q = game.qs[game.i];
-  audio.play([['prompt/which-starts-with', 'איזו תמונה מתחילה בצליל'], [`letter-sound/${LETTER_ID[q.letter]}`, q.letter]]);
+function say() {
+  const c = session.cs[session.i];
+  const word = [`word/${c.word?.id}`, c.word?.he];
+  const items = {
+    starts: [['prompt/which-starts-with', 'איזו תמונה מתחילה בצליל'], [`letter-sound/${LETTER_ID[c.letter]}`, c.letter]],
+    bubbles: [['prompt/pop-letter', 'פוצצו את הבועה עם האות'], [`letter-sound/${LETTER_ID[c.letter]}`, c.letter]],
+    build: [['prompt/build-word', 'בנו את המילה'], word],
+    syllable: [['prompt/feed-monster', 'האכילו את המפלצת'], word],
+  }[c.type];
+  audio.play(items);
 }
-async function choose(i) {
-  const q = game.qs[game.i];
-  const w = q.options[i];
-  if (w === q.target) {
-    game.answered = true;
-    if (game.misses < 2) game.stars++;
-    if (game.misses < 2) progress.save({ stars: progress.get().stars + 1 });
-    render();
-    audio.play([[`word/${w.id}`, w.he], ['prompt/well-done', 'כל הכבוד']]);
-  } else {
-    game.misses++;
-    game.picked = i;
-    if (game.misses >= 2) { game.answered = true; render(); audio.play([[`word/${q.target.id}`, q.target.he]]); return; }
-    render();
-    audio.play([[`word/${w.id}`, w.he], ['prompt/try-again', 'כמעט! נסו שוב']]);
-    await sleep(700);
-    if (game && game.picked === i && !game.answered) { game.picked = null; if (current() === 'starts') render(); }
+function finishChallenge() {
+  session.answered = true;
+  session.st.hit = true;
+  if (session.misses < 2) { session.stars++; progress.addStar(); }
+  render();
+  const c = session.cs[session.i];
+  audio.play(c.word ? [[`word/${c.word.id}`, c.word.he], ['prompt/well-done', 'כל הכבוד']] : [['prompt/well-done', 'כל הכבוד']]);
+}
+// A wrong answer never ends in failure: after two misses the right answer is shown.
+async function wrong(marker, speakItems) {
+  session.misses++;
+  session.st.picked = marker;
+  audio.play(speakItems.concat([['prompt/try-again', 'כמעט! נסו שוב']]));
+  render();
+  await sleep(700);
+  if (session && session.st.picked === marker && !session.answered) { session.st.picked = null; if (MODES.includes(current())) render(); }
+}
+function chooseOption(i) { // starts
+  const c = session.cs[session.i], w = c.options[i];
+  if (w === c.target) return finishChallenge();
+  if (session.misses + 1 >= 2) { session.misses++; return finishChallenge(); }
+  return wrong(i, [[`word/${w.id}`, w.he]]);
+}
+function chooseBubble(l) {
+  const c = session.cs[session.i];
+  if (l === c.letter) return finishChallenge();
+  if (session.misses + 1 >= 2) { session.misses++; return finishChallenge(); }
+  return wrong(l, [[`letter-sound/${LETTER_ID[l]}`, l]]);
+}
+function tapTile(i) { // build and syllable
+  const c = session.cs[session.i], st = session.st;
+  const piece = c.tray[i];
+  const ok = c.type === 'build' ? buildAccepts(c, st.placed, piece) : syllableAccepts(c, st.placed, piece);
+  const say1 = c.type === 'build' ? [[`letter-sound/${LETTER_ID[piece]}`, piece]] : [[null, piece]];
+  if (!ok) {
+    if (session.misses + 1 >= 2) { // show the right tile instead of failing
+      session.misses++;
+      const right = c.tray.findIndex((t, k) => !st.used.includes(k) && (c.type === 'build' ? buildAccepts(c, st.placed, t) : syllableAccepts(c, st.placed, t)));
+      return placeTile(right, c, st);
+    }
+    return wrong(i, say1);
   }
+  return placeTile(i, c, st);
+}
+function placeTile(i, c, st) {
+  st.used.push(i); st.placed++; st.picked = null;
+  const total = c.type === 'build' ? c.slots.length : c.parts.length;
+  if (st.placed >= total) return finishChallenge();
+  audio.play(c.type === 'build' ? [[`letter-sound/${LETTER_ID[c.tray[i]]}`, c.tray[i]]] : [[null, c.tray[i]]]);
+  render();
 }
 function next() {
-  if (game.i + 1 >= game.qs.length) {
-    game.done = true; progress.save({ rounds: progress.get().rounds + 1 });
+  if (session.i + 1 >= session.cs.length) {
+    session.done = true; progress.addRound(session.mode);
     audio.play([['prompt/well-done', 'כל הכבוד']]);
     app.innerHTML = screens.roundEnd(); app.dataset.screen = 'roundEnd';
     return;
   }
-  game.i++; game.answered = false; game.picked = null; game.misses = 0; game.spoken = false;
+  session.i++; session.answered = false; session.misses = 0; session.spoken = false; session.st = freshState();
   render();
 }
 
@@ -181,10 +274,11 @@ function playLab() {
 app.addEventListener('click', (e) => {
   const t = e.target.closest('button');
   if (!t || t.disabled) return;
-  if (t.dataset.soon) { t.classList.remove('nap'); void t.offsetWidth; t.classList.add('nap'); return; }
   if (t.dataset.go) return go(t.dataset.go);
-  if ('say' in t.dataset) return sayQuestion();
-  if ('opt' in t.dataset) return choose(+t.dataset.opt);
+  if ('say' in t.dataset) return say();
+  if ('opt' in t.dataset) return chooseOption(+t.dataset.opt);
+  if ('bub' in t.dataset) return chooseBubble(t.dataset.bub);
+  if ('tile' in t.dataset) return tapTile(+t.dataset.tile);
   if ('next' in t.dataset) return next();
   if ('k' in t.dataset) return tapLetter(t.dataset.k);
   if ('v' in t.dataset) return chooseVowel(t.dataset.v || null);
@@ -197,6 +291,7 @@ document.addEventListener('pointerdown', () => { audio.state.unlocked = true; },
 
 // Test hook: the state of the lab, for automated checks.
 window.__lab = () => ({ seq: lab.seq, shown: display(lab.seq) });
+window.__challenge = () => session && { mode: session.mode, i: session.i, c: session.cs[session.i], st: session.st };
 
 audio.init().then(render);
 render();

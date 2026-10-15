@@ -77,3 +77,53 @@ test('choosing a vowel changes the last letter only, and can be changed again or
   assert.deepEqual(seq, ['ד', 'מ']);
   assert.deepEqual(applyVowel([], 'מ', 'kamatz'), []);
 });
+
+test('syllables are the same letters as the word, in order', async () => {
+  const { SYLLABLES } = await import('../src/content.js');
+  const strip = (s) => s.replace(/[֑-ׇ]/g, '');
+  for (const [id, parts] of Object.entries(SYLLABLES)) {
+    const w = WORDS.find((x) => x.id === id);
+    assert.ok(w, `word ${id} exists`);
+    assert.ok(parts.length >= 2);
+    assert.equal(strip(parts.join('')), w.he, id);
+  }
+});
+
+test('every game builds a full session that can be solved', async () => {
+  const { buildSession, buildAccepts, syllableAccepts, MODES } = await import('../src/challenges.js');
+  let seed = 3;
+  const rng = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  for (let r = 0; r < 100; r++) {
+    for (const mode of MODES) {
+      const cs = buildSession(mode, rng);
+      assert.equal(cs.length, 5, mode);
+      for (const c of cs) {
+        if (c.type === 'starts') assert.equal(c.options.filter((o) => o.letter === c.letter).length, 1);
+        if (c.type === 'bubbles') {
+          assert.equal(c.options.length, 6);
+          assert.equal(new Set(c.options).size, 6);
+          assert.equal(c.options.filter((l) => l === c.letter).length, 1);
+          for (const o of c.options) if (o !== c.letter) assert.ok(!soundConflict(o, c.letter));
+        }
+        if (c.type === 'build') {
+          // Tapping the right tile for each slot in turn finishes the word.
+          const tray = [...c.tray];
+          for (let i = 0; i < c.slots.length; i++) {
+            const k = tray.findIndex((t) => buildAccepts(c, i, t));
+            assert.ok(k >= 0, `${c.word.id} slot ${i}`);
+            tray.splice(k, 1);
+          }
+        }
+        if (c.type === 'syllable') {
+          const tray = [...c.tray];
+          for (let i = 0; i < c.parts.length; i++) {
+            const k = tray.findIndex((t) => syllableAccepts(c, i, t));
+            assert.ok(k >= 0, `${c.word.id} part ${i}`);
+            tray.splice(k, 1);
+          }
+        }
+      }
+      if (mode !== 'boss' && mode !== 'starts') assert.equal(new Set(cs.map((c) => c.word?.id ?? c.letter)).size, 5, `${mode} has no repeats`);
+    }
+  }
+});
