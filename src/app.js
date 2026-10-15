@@ -3,6 +3,8 @@ import { MAX_TOKENS, makeToken, addToken, removeLast, applyVowel, display } from
 import { buildSession, buildAccepts, syllableAccepts, MODES } from './challenges.js';
 import * as audio from './audio.js';
 import { startArena } from './arena.js';
+import { canListen, listenOnce } from './listen.js';
+import { matchesWord } from './match.js';
 import * as progress from './progress.js';
 
 const app = document.getElementById('app');
@@ -15,7 +17,7 @@ let lab = { seq: [], pending: null };
 // One play-through of a game: five challenges, one after another.
 // st holds the on-screen state of the current challenge.
 let session = null;
-const freshState = () => ({ picked: null, placed: 0, used: [], hit: false, hits: 0 });
+const freshState = () => ({ picked: null, placed: 0, used: [], hit: false, hits: 0, listening: false, scaffold: false, parent: false, silent: 0, msg: '' });
 let stopArena = null;
 
 // ---- shared pieces ----
@@ -49,6 +51,23 @@ const draw = {
       <button class="sound mini" data-say aria-label="השמע שוב">${c.letter}<small>🔊</small></button>
       <div class="bubtext"><p class="sub">פוצצו את הבועות עם האות</p><div class="hits" aria-label="${c.need} בועות לפוצץ">${hits}</div></div></div>
       <div class="arena" id="arena"></div>`;
+  },
+  read(c) {
+    const st = session.st;
+    const word = st.scaffold
+      ? `<div class="chipsrow">${c.parts.map((p) => `<span class="chip big">${esc(p)}</span>`).join('')}</div>`
+      : `<div class="bigword">${esc(c.text)}</div>`;
+    const face = session.answered ? c.word.emoji : '👾';
+    const msg = st.listening ? 'המפלצת מקשיבה…' : (st.msg || 'לחצו על המיקרופון וקראו בקול');
+    const mic = `<button class="act recbtn ${st.listening ? 'live' : ''}" data-listen ${st.listening || session.answered ? 'disabled' : ''}>${st.listening ? '⏺ מקשיבה…' : '🎤 קראו'}</button>
+      <button class="act hear" data-hear aria-label="הקשיבו למילה" ${session.answered ? 'disabled' : ''}>🔊</button>`;
+    const parent = `<button class="act okbtn" data-pok>✅ קרא נכון</button><button class="act" data-pretry>🔁 עוד פעם</button>
+      <button class="act hear" data-hear aria-label="הקשיבו למילה">🔊</button>`;
+    return `<div class="prompt"><p class="sub">קראו את המילה למפלצת</p></div>
+      <div class="readcard"><span class="mon ${st.listening ? 'listening' : ''} ${session.answered ? 'munch' : ''}">${face}</span>${word}</div>
+      <p class="readmsg" role="status">${esc(msg)}</p>
+      ${session.answered ? '' : `<div class="acts readacts">${st.parent ? parent : mic}</div>`}
+      ${st.parent && !session.answered ? '<p class="tip">מצב הורה: אין זיהוי דיבור זמין, אז הורה מאשר את הקריאה.</p>' : ''}`;
   },
   build(c) {
     const slots = c.slots.map((ch, i) => `<span class="slot ${i < session.st.placed ? 'full' : ''}">${i < session.st.placed ? ch : ''}</span>`).join('');
@@ -90,17 +109,28 @@ const screens = {
       <div class="top">${homeBtn(false)}${starsPill()}</div>
       <h1>עולם הקריאה</h1><p class="sub">בוא נשחק באותיות!</p>
       <div class="map">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M70 14 C 20 18, 90 32, 30 38 S 90 58, 32 64 S 80 90, 50 96" stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="1.5 3" vector-effect="non-scaling-stroke" stroke-linecap="round"/></svg>
-        ${stn(68, 14, '#ffd966', '<span class="abg">אבג</span>', 'מה מתחיל ב־…‏', 'starts', 'starts')}
-        ${stn(30, 36, '#9fe3d0', '🫧', 'בועות האותיות', 'bubbles', 'bubbles')}
-        ${stn(68, 58, '#ffb3a7', '🧩', 'בונים מילה', 'build', 'build')}
-        ${stn(30, 78, '#c9b8ff', '👾', 'מפלצת ההברות', 'syllable', 'syllable')}
-        ${stn(68, 93, '#ffa86b', '🐉', 'קרב הבוס', 'boss', 'boss')}
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M68 11 C 68 19, 30 19, 30 27 C 30 35, 68 35, 68 43 C 68 51, 30 51, 30 59 C 30 67, 68 67, 68 75 C 68 83, 30 83, 30 91" stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="1.5 3" vector-effect="non-scaling-stroke" stroke-linecap="round"/></svg>
+        ${stn(68, 11, '#ffd966', '<span class="abg">אבג</span>', 'מה מתחיל ב־…‏', 'starts', 'starts')}
+        ${stn(30, 27, '#9fe3d0', '🫧', 'בועות האותיות', 'bubbles', 'bubbles')}
+        ${stn(68, 43, '#ffb3a7', '🧩', 'בונים מילה', 'build', 'build')}
+        ${stn(30, 59, '#c9b8ff', '👾', 'מפלצת ההברות', 'syllable', 'syllable')}
+        ${stn(68, 75, '#b8e6c1', '🎤', 'המפלצת מקשיבה', 'read', 'read')}
+        ${stn(30, 91, '#ffa86b', '🐉', 'קרב הבוס', 'boss', 'boss')}
       </div>
       <button class="labbtn" data-go="lab">🧪 מעבדת המילים</button>${ttsNote()}`;
   },
 
-  // All five games share this screen; the challenge decides what is drawn.
+  consent() {
+    return `
+      <div class="top">${homeBtn()}${starsPill()}</div>
+      <div class="card consent"><div class="big">🎤</div><h1>המפלצת מקשיבה</h1>
+        <p>בכל תור הילד קורא מילה בקול והמפלצת מקשיבה. לשם כך האפליקציה משתמשת בזיהוי הדיבור של המכשיר.</p>
+        <p>באייפון, השמע נשלח לאפל כדי להפוך אותו לטקסט. האפליקציה לא שומרת הקלטות ולא שולחת אותן לשום מקום אחר.</p>
+        <p class="small">למבוגר: צריך שהכתבה תהיה מופעלת בהגדרות המכשיר (כללי ← מקלדת ← הפעלת הכתבה).</p></div>
+      <div class="stack"><button class="next static" data-consent>אני ההורה, אפשר להתחיל ▶</button></div>`;
+  },
+
+  // All six games share this screen; the challenge decides what is drawn.
   play() {
     const c = session.cs[session.i];
     const boss = session.mode === 'boss';
@@ -157,6 +187,9 @@ function current() { return (location.hash.slice(1) || 'home').split('?')[0]; }
 function render() {
   if (stopArena) { stopArena(); stopArena = null; }
   const name = current();
+  if (name === 'read' && !progress.get().readConsent) {
+    app.innerHTML = screens.consent(); app.dataset.screen = 'consent'; app.classList.remove('boss'); return;
+  }
   if (MODES.includes(name) && (!session || session.mode !== name || session.done)) startSession(name);
   const fn = MODES.includes(name) ? screens.play : (screens[name] || screens.home);
   app.innerHTML = fn();
@@ -196,17 +229,18 @@ function say() {
     bubbles: [['prompt/pop-letter', 'פוצצו את הבועות עם האות'], [`letter-sound/${LETTER_ID[c.letter]}`, c.letter]],
     build: [['prompt/build-word', 'בנו את המילה'], word],
     syllable: [['prompt/feed-monster', 'האכילו את המפלצת'], word],
+    read: [['prompt/read-word', 'קראו את המילה']],
   }[c.type];
   audio.play(items);
 }
-function finishChallenge() {
+function finishChallenge(lead = []) {
   session.answered = true;
   session.st.hit = true;
   const c0 = session.cs[session.i];
   if (session.misses < (c0.type === 'bubbles' ? 3 : 2)) { session.stars++; progress.addStar(); }
   render();
   const c = session.cs[session.i];
-  audio.play(c.word ? [[`word/${c.word.id}`, c.word.he], ['prompt/well-done', 'כל הכבוד']] : [['prompt/well-done', 'כל הכבוד']]);
+  audio.play(lead.concat(c.word ? [[`word/${c.word.id}`, c.word.he], ['prompt/well-done', 'כל הכבוד']] : [['prompt/well-done', 'כל הכבוד']]));
 }
 // A wrong answer never ends in failure: after two misses the right answer is shown.
 async function wrong(marker, speakItems) {
@@ -223,6 +257,46 @@ function chooseOption(i) { // starts
   if (session.misses + 1 >= 2) { session.misses++; return finishChallenge(); }
   return wrong(i, [[`word/${w.id}`, w.he]]);
 }
+// ---- read aloud ----
+async function startListening() {
+  const st = session.st;
+  if (st.listening || session.answered) return;
+  if (!canListen()) { st.parent = true; st.msg = 'אין זיהוי דיבור במכשיר זה.'; return render(); }
+  audio.stop();
+  st.listening = true; st.msg = '';
+  render();
+  const c = session.cs[session.i];
+  const { alternatives, error } = await listenOnce();
+  if (!session || session.cs[session.i] !== c || session.answered || current() !== 'read') return;
+  st.listening = false;
+  if (error === 'not-allowed' || error === 'service-not-allowed') {
+    st.parent = true; st.msg = 'צריך לאפשר מיקרופון והכתבה בהגדרות המכשיר.';
+    return render();
+  }
+  if (error === 'network') { st.parent = true; st.msg = 'אין חיבור לאינטרנט להאזנה.'; return render(); }
+  if (matchesWord(alternatives, c.word.he)) return finishChallenge();
+  if (!alternatives.length) {
+    st.msg = 'לא שמעתי. נסו שוב קצת יותר חזק.';
+    if (++st.silent >= 3) st.parent = true;
+    return render();
+  }
+  return missRead(c);
+}
+// Never a failure: after three tries the monster reads along and the word counts.
+function missRead(c) {
+  const st = session.st;
+  session.misses++;
+  st.scaffold = true;
+  if (session.misses >= 3) return finishChallenge([['prompt/read-together', 'בואו נקרא ביחד']]);
+  st.msg = 'כמעט! נסו שוב, הברה אחרי הברה.';
+  audio.play([['prompt/try-again', 'כמעט! נסו שוב']]);
+  return render();
+}
+function hearWord() {
+  const c = session.cs[session.i];
+  audio.play([[`word/${c.word.id}`, c.word.he]]);
+}
+
 function tapTile(i) { // build and syllable
   const c = session.cs[session.i], st = session.st;
   const piece = c.tray[i];
@@ -288,6 +362,11 @@ app.addEventListener('click', (e) => {
   if ('say' in t.dataset) return say();
   if ('opt' in t.dataset) return chooseOption(+t.dataset.opt);
   if ('tile' in t.dataset) return tapTile(+t.dataset.tile);
+  if ('listen' in t.dataset) return startListening();
+  if ('hear' in t.dataset) return hearWord();
+  if ('pok' in t.dataset) return finishChallenge();
+  if ('pretry' in t.dataset) return missRead(session.cs[session.i]);
+  if ('consent' in t.dataset) { progress.giveReadConsent(); return render(); }
   if ('next' in t.dataset) return next();
   if ('k' in t.dataset) return tapLetter(t.dataset.k);
   if ('v' in t.dataset) return chooseVowel(t.dataset.v || null);

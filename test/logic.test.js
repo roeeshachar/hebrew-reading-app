@@ -128,3 +128,27 @@ test('every game builds a full session that can be solved', async () => {
     }
   }
 });
+
+test('speech matching ignores nikud, punctuation and final letters, and forgives one slip in longer words', async () => {
+  const { matchesWord, normalizeHebrew } = await import('../src/match.js');
+  assert.equal(normalizeHebrew('דֶּלֶת.'), 'דלת');
+  assert.equal(normalizeHebrew('לימון'), normalizeHebrew('לימוֹן'));
+  assert.ok(matchesWord(['דלת'], 'דֶּלֶת'));
+  assert.ok(matchesWord(['זה דלת'], 'דֶּלֶת'), 'a sentence containing the word counts');
+  assert.ok(matchesWord(['לא נכון', 'כלב'], 'כֶּלֶב'), 'any alternative can match');
+  assert.ok(matchesWord(['לימן'], 'לִימוֹן'), 'one letter off in a long word');
+  assert.ok(!matchesWord(['דלי'], 'דֶּלֶת'), 'no slack on short words');
+  assert.ok(!matchesWord(['חתול'], 'כֶּלֶב'));
+  assert.ok(!matchesWord([], 'דֶּלֶת'));
+  assert.ok(!matchesWord(['', '  '], 'דֶּלֶת'));
+});
+
+test('every reading word matches itself and nothing else in the list', async () => {
+  const { matchesWord } = await import('../src/match.js');
+  const { SYLLABLES } = await import('../src/content.js');
+  const words = Object.entries(SYLLABLES).map(([id, parts]) => ({ id, text: parts.join(''), he: WORDS.find((w) => w.id === id).he }));
+  for (const a of words) {
+    assert.ok(matchesWord([a.he], a.text), a.id);
+    for (const b of words) if (a !== b) assert.ok(!matchesWord([b.he], a.text), `${b.id} must not pass for ${a.id}`);
+  }
+});

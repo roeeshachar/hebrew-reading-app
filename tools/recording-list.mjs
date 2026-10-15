@@ -18,6 +18,8 @@ const prompts = [
   ['prompt/pop-letter', 'פוצצו את הבועה עם האות', 'לפני צליל האות'],
   ['prompt/build-word', 'בנו את המילה', 'לפני המילה'],
   ['prompt/feed-monster', 'האכילו את המפלצת', 'לפני המילה'],
+  ['prompt/read-word', 'קראו את המילה', 'לפני המילה'],
+  ['prompt/read-together', 'בואו נקרא ביחד', 'חם, ללא אכזבה'],
   ['prompt/well-done', 'כל הכבוד!', ''],
 ];
 const sounds = LETTERS.map((l) => row(`letter-sound/${l.id}`, l.ch, 'הצליל בלבד ("דְּ"), לא השם "דלת"'));

@@ -1,8 +1,8 @@
 // Offline shell. Bump VERSION when files change so phones pick up the new copy.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
-  'src/app.js', 'src/audio.js', 'src/content.js', 'src/lab-logic.js', 'src/rounds.js', 'src/progress.js', 'src/challenges.js', 'src/arena.js',
+  'src/app.js', 'src/audio.js', 'src/content.js', 'src/lab-logic.js', 'src/rounds.js', 'src/progress.js', 'src/challenges.js', 'src/arena.js', 'src/match.js', 'src/listen.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   ...[400, 700, 800].flatMap((w) => [`fonts/rubik-hebrew-${w}-normal.woff2`, `fonts/rubik-latin-${w}-normal.woff2`]),
 ];

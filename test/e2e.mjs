@@ -24,6 +24,19 @@ try {
   await page.addInitScript(() => {
     window.__said = [];
     window.speechSynthesis.speak = (u) => { window.__said.push(u.text); setTimeout(() => u.onend && u.onend(), 0); };
+    // Speech recognition: each listen() takes the next scripted outcome from window.__asr.
+    window.__asr = [];
+    window.SpeechRecognition = window.webkitSpeechRecognition = class {
+      start() {
+        const next = window.__asr.shift() || { alts: [] };
+        setTimeout(() => {
+          if (next.error) this.onerror && this.onerror({ error: next.error });
+          else if (next.alts.length) this.onresult && this.onresult({ results: [next.alts.map((t) => ({ transcript: t }))] });
+          this.onend && this.onend();
+        }, 30);
+      }
+      stop() {}
+    };
   });
   await page.goto(base);
   await page.waitForSelector('.map');
@@ -140,8 +153,62 @@ try {
   await page.screenshot({ path: `${out}/home-progress.png` });
   assert.equal(await page.locator('.abg').innerText(), 'אבג', 'first station shows Hebrew letters');
 
+  // --- read aloud: the monster listens ---
+  await page.goto(base + '#home');
+  await page.click('[data-go=read]');
+  await page.waitForSelector('[data-consent]');
+  await page.screenshot({ path: `${out}/read-consent.png` });
+  await page.click('[data-consent]');
+  await page.waitForSelector('[data-listen]');
+  await page.screenshot({ path: `${out}/read-start.png` });
+  const say = (...outcomes) => page.evaluate((o) => window.__asr.push(...o), outcomes);
+  const wordNow = async () => (await page.evaluate(() => window.__challenge().c)).word.he;
+  // 1: silence, then a wrong word (syllables appear), then the right word
+  await say({ alts: [] });
+  await page.click('[data-listen]');
+  await page.waitForFunction(() => document.querySelector('.readmsg').textContent.includes('לא שמעתי'));
+  await say({ alts: ['שלום'] });
+  await page.click('[data-listen]');
+  await page.waitForSelector('.chipsrow');
+  await page.screenshot({ path: `${out}/read-scaffold.png` });
+  await say({ alts: [await wordNow()] });
+  await page.click('[data-listen]');
+  await page.waitForSelector('.banner.good');
+  await page.screenshot({ path: `${out}/read-correct.png` });
+  await page.click('[data-next]');
+  // 2: three wrong tries end with the monster reading along, no failure
+  await say({ alts: ['אבא'] }, { alts: ['אמא'] }, { alts: ['סבתא'] });
+  for (let k = 0; k < 3; k++) {
+    await page.click('[data-listen]');
+    if (k < 2) await page.waitForFunction((n) => document.querySelector('.readmsg').textContent.includes('כמעט') && true, k);
+    else await page.waitForSelector('.banner.good');
+    await page.waitForTimeout(80);
+  }
+  await page.click('[data-next]');
+  // 3-5: right first time, with a sentence and a one-letter slip allowed
+  for (let k = 0; k < 3; k++) {
+    await say({ alts: ['זה ' + (await wordNow())] });
+    await page.click('[data-listen]');
+    await page.waitForSelector('.banner.good');
+    await page.click('[data-next]');
+  }
+  await page.waitForSelector('.big');
+  await page.click('[data-go=home]');
+  await page.waitForSelector('.map');
+  assert.equal(await page.locator('[data-go=read] .dots i.on').count(), 1, 'read shows one finished round');
+
+  // Permission refused: the screen switches to parent mode and still works.
+  await page.goto(base + '#read');
+  await page.waitForSelector('[data-listen]');
+  await say({ error: 'not-allowed' });
+  await page.click('[data-listen]');
+  await page.waitForSelector('[data-pok]');
+  await page.screenshot({ path: `${out}/read-parent.png` });
+  await page.click('[data-pok]');
+  await page.waitForSelector('.banner.good');
+
   // --- lab ---
-  await page.click('[data-go=lab]');
+  await page.goto(base + '#lab');
   await page.waitForSelector('.keys');
   assert.equal(await page.locator('[data-play]').isDisabled(), true, 'play disabled when empty');
   await page.screenshot({ path: `${out}/lab-empty.png` });
@@ -179,7 +246,7 @@ try {
 
   // --- every screen fits a small phone without scrolling ---
   await page.setViewportSize({ width: 375, height: 667 });
-  for (const route of ['home', 'starts', 'bubbles', 'build', 'syllable', 'boss', 'lab']) {
+  for (const route of ['home', 'starts', 'bubbles', 'build', 'syllable', 'read', 'boss', 'lab']) {
     await page.goto(base + '#' + route);
     await page.waitForTimeout(150);
     const over = await page.evaluate(() => {
@@ -204,6 +271,18 @@ try {
   await p2.addInitScript(() => { window.speechSynthesis.getVoices = () => [{ lang: 'en-US' }]; });
   await p2.goto(base);
   await p2.waitForSelector('.notice');
+
+  // --- a browser with no speech recognition goes straight to parent mode ---
+  const p3 = await ctx.newPage();
+  await p3.addInitScript(() => { window.webkitSpeechRecognition = undefined; window.SpeechRecognition = undefined; });
+  await p3.goto(base + '#read');
+  await p3.waitForSelector('[data-listen]');
+  await p3.click('[data-listen]');
+  await p3.waitForSelector('[data-pok]');
+  await p3.click('[data-pretry]');
+  await p3.waitForSelector('.chipsrow');
+  await p3.click('[data-pok]');
+  await p3.waitForSelector('.banner.good');
 
   assert.deepEqual(errors, [], 'no console or page errors');
   console.log('e2e passed');

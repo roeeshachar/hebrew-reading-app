@@ -3,7 +3,7 @@ import { LETTERS, WORDS, SYLLABLES, soundConflict } from './content.js';
 import { buildQuestion } from './rounds.js';
 
 export const SESSION_SIZE = 5;
-export const MODES = ['starts', 'bubbles', 'build', 'syllable', 'boss'];
+export const MODES = ['starts', 'bubbles', 'build', 'syllable', 'read', 'boss'];
 
 const FINAL_TO_BASE = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
 export const baseLetter = (ch) => FINAL_TO_BASE[ch] || ch;
@@ -56,6 +56,14 @@ export function makeSyllable(rng, avoid = []) {
 }
 export const syllableAccepts = (c, placed, piece) => c.parts[placed] === piece;
 
+// The monster shows a pointed word and the child reads it aloud.
+export function makeRead(rng, avoid = []) {
+  const ids = Object.keys(SYLLABLES).filter((id) => !avoid.includes(id));
+  const id = pick(ids, rng);
+  const parts = SYLLABLES[id];
+  return { type: 'read', word: wordById(id), parts, text: parts.join('') };
+}
+
 function many(make, key, rng, n = SESSION_SIZE) {
   const out = [];
   for (let i = 0; i < n; i++) out.push(make(rng, out.map(key)));
@@ -67,6 +75,7 @@ export function buildSession(mode, rng = Math.random) {
     case 'bubbles': return many(makeBubbles, (c) => c.letter, rng);
     case 'build': return many(makeBuild, (c) => c.word.id, rng);
     case 'syllable': return many(makeSyllable, (c) => c.word.id, rng);
+    case 'read': return many(makeRead, (c) => c.word.id, rng);
     case 'boss': return [makeBubbles(rng), makeStarts(rng), makeBuild(rng), makeSyllable(rng), makeStarts(rng)];
     default: return many((r, avoid) => {
       // Starts-with questions must not repeat a first letter within a session.
