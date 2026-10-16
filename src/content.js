@@ -96,7 +96,7 @@ export const WORD_NIKUD = {
 // (a short "d"), not the letter's name. Alef and ayin are silent with a sheva, so they take
 // a patach. Change an entry and generate that clip again if a letter sounds wrong.
 export const SOUND_TEXT = {
-  'א': 'אַ', 'ב': 'בְּ', 'ג': 'גְּ', 'ד': 'דְּ', 'ה': 'הְ', 'ו': 'וְ', 'ז': 'זְ', 'ח': 'חְ',
+  'א': 'אַ', 'ב': 'בְּ', 'ג': 'גְּ', 'ד': 'דֶ', 'ה': 'הְ', 'ו': 'וְ', 'ז': 'זְ', 'ח': 'חְ',
   'ט': 'טְ', 'י': 'יְ', 'כ': 'כְּ', 'ל': 'לְ', 'מ': 'מְ', 'נ': 'נְ', 'ס': 'סְ', 'ע': 'עַ',
   'פ': 'פְּ', 'צ': 'צְ', 'ק': 'קְ', 'ר': 'רְ', 'ש': 'שְׁ', 'ת': 'תְּ',
 };
