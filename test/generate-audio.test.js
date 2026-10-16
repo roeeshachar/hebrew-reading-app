@@ -60,3 +60,26 @@ test('generate-audio sends the voice, model and spoken text, and saves one file 
   assert.match(dry.out, /would make prompt\/which-starts-with/);
   server.close();
 });
+
+test('the default model is v4, and a rejected stability value is retried without it', async () => {
+  const seen = [];
+  const server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (d) => { body += d; });
+    req.on('end', () => {
+      const b = JSON.parse(body);
+      seen.push(b);
+      if (b.voice_settings) return res.writeHead(422).end('{"detail":"invalid voice_settings stability"}');
+      res.writeHead(200, { 'content-type': 'audio/mpeg' }).end(Buffer.from('ID3'));
+    });
+  }).listen(0);
+  await new Promise((r) => server.once('listening', r));
+  const dir = await mkdtemp(join(tmpdir(), 'audio-'));
+  const env = { ELEVENLABS_API_KEY: 'k', VOICE_ID: 'v', MODEL_ID: '', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir };
+  const r = await run(env, ['--only', 'prompts', '--limit', '1', '--stability', '1']);
+  assert.equal(r.code, 0, r.out);
+  assert.equal(seen[0].model_id, 'eleven_v4');
+  assert.deepEqual(seen[0].voice_settings, { stability: 1 });
+  assert.equal(seen[1].voice_settings, undefined, 'retried without stability');
+  server.close();
+});

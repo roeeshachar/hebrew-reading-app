@@ -5,12 +5,12 @@
 ## ליצור עם ElevenLabs
 
 1. **בדיקה בלי קוד.** באתר, בוחרים קול ומודל (v4 או v3, ולהשוות), ומקלידים כמה פריטים: הברות (בָ בַ בִ), מילה מנוקדת (דֶּלֶת), רצף מומצא, והוראה. מקשיבים.
-2. **מכינים:** מפתח API (בפרופיל), מזהה הקול (Voice ID) ושם המודל (Model ID) מהתיעוד, ו-Node 18 ומעלה.
+2. **מכינים:** מפתח API (בפרופיל), מזהה הקול (Voice ID) ושם המודל (Model ID): `eleven_v4`, או `eleven_v3`, ו-Node 18 ומעלה.
 3. **ניסוי קטן:**
    ```
    export ELEVENLABS_API_KEY=...
    export VOICE_ID=...
-   export MODEL_ID=...        # ברירת המחדל eleven_v3
+   export MODEL_ID=eleven_v4  # ברירת המחדל. ל-v3: eleven_v3
    node tools/generate-audio.mjs --only prompts,sounds --limit 6
    ```
 4. **מקשיבים** לקבצים שנוצרו בתיקיית `audio/`. אם קליפ לא טוב, מוחקים את הקובץ ומריצים שוב רק אותו (המערכת מדלגת על מה שקיים). לצלילי אותיות כדאי `--stability 1`.
