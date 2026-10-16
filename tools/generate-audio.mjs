@@ -75,6 +75,7 @@ async function synth(text) {
     if (withLanguage && language && res.status >= 400 && /language/i.test(detail)) { withLanguage = false; continue; }
     // A model may not accept a stability value; try once without it.
     if (withSettings && stability !== undefined && res.status >= 400 && /stability|voice_settings/i.test(detail)) { withSettings = false; console.warn('  (stability not accepted by this model, using its default)'); continue; }
+    if (res.status === 402) throw Object.assign(new Error(detail), { stop: true });
     throw new Error(`${res.status} ${detail}`);
   }
   throw new Error('too many retries');
@@ -92,6 +93,12 @@ for (const clip of todo) {
     made++;
     console.log(`ok   ${clip.key}  ←  ${clip.say}`);
   } catch (e) {
+    if (e.stop) {
+      console.error('\nElevenLabs says this voice needs a paid plan (free accounts cannot use library voices through the API).');
+      console.error('Pick a voice under "Default voices" (free), or upgrade the plan. Nothing was charged and nothing was saved.');
+      console.error(e.message.slice(0, 200));
+      process.exit(2);
+    }
     failed.push(clip.key);
     console.error(`FAIL ${clip.key}: ${e.message}`);
   }

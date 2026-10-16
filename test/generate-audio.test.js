@@ -114,3 +114,15 @@ test('settings can come from a .env file, and the real environment wins', async 
     server.close();
   }
 });
+
+test('a payment-required answer stops the run with an explanation instead of failing every clip', async () => {
+  const seen = [];
+  const server = createServer((req, res) => { seen.push(req.url); req.resume(); req.on('end', () => res.writeHead(402).end('{"detail":{"code":"paid_plan_required"}}')); }).listen(0);
+  await new Promise((r) => server.once('listening', r));
+  const dir = await mkdtemp(join(tmpdir(), 'audio-'));
+  const r = await run({ ELEVENLABS_API_KEY: 'k', VOICE_ID: 'v', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir }, ['--only', 'sounds', '--limit', '5']);
+  assert.equal(r.code, 2);
+  assert.equal(seen.length, 1, 'stops after the first refusal');
+  assert.match(r.out, /paid plan/);
+  server.close();
+});
