@@ -25,3 +25,13 @@
 ## להקליט בעצמך במקום
 
 מקליטים כל פריט ברשימה (אפשר בתזכירים קוליים), שומרים כ-mp3 בשם שברשימה בתיקיית `audio/`, ומריצים `npm run audio-manifest`. קליפ מוקלט ידנית ומוקלט ב-ElevenLabs יכולים לשבת יחד.
+
+## קליפ אחד לא נשמע טוב
+
+מנסים ניסוח אחר רק לקליפ הזה, בלי לגעת באחרים. כל נסיון נשמר בקובץ נפרד כדי שאפשר יהיה להשוות:
+```
+node tools/generate-audio.mjs --key letter-sound/dalet --say "דְ" --suffix -1 --stability 1
+node tools/generate-audio.mjs --key letter-sound/dalet --say "דֶ" --suffix -2 --stability 1
+node tools/generate-audio.mjs --key letter-sound/dalet --say "דַ" --suffix -3 --stability 1
+```
+מקשיבים לקבצים `dalet-1.mp3`, `dalet-2.mp3` ו-`dalet-3.mp3` בתיקיית `audio/letter-sound`, ומחליפים את הטוב ביותר בשם הרגיל: `mv audio/letter-sound/dalet-2.mp3 audio/letter-sound/dalet.mp3`. קבצים עם סיומת כזו לא נכנסים לאפליקציה, ואפשר למחוק אותם.

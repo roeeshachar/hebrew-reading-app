@@ -126,3 +126,18 @@ test('a payment-required answer stops the run with an explanation instead of fai
   assert.match(r.out, /paid plan/);
   server.close();
 });
+
+test('--key with --say and --suffix writes a variant next to the real clip', async () => {
+  const seen = [];
+  const server = createServer((req, res) => { let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => { seen.push(JSON.parse(b).text); res.writeHead(200).end(Buffer.from('v')); }); }).listen(0);
+  await new Promise((r) => server.once('listening', r));
+  const dir = await mkdtemp(join(tmpdir(), 'audio-'));
+  const env = { ELEVENLABS_API_KEY: 'k', VOICE_ID: 'v', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir };
+  const r = await run(env, ['--key', 'letter-sound/dalet', '--say', 'דֶ', '--suffix', '-2']);
+  assert.equal(r.code, 0, r.out);
+  assert.deepEqual(seen, ['דֶ']);
+  assert.deepEqual(await readdir(join(dir, 'letter-sound')), ['dalet-2.mp3']);
+  const bad = await run(env, ['--key', 'letter-sound/nope']);
+  assert.equal(bad.code, 1);
+  server.close();
+});

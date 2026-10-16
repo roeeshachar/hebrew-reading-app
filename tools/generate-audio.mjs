@@ -34,6 +34,11 @@ const only = value('only')?.split(',');
 const limit = Number(value('limit')) || Infinity;
 const stability = value('stability') !== undefined ? Number(value('stability')) : undefined;
 const dry = flag('dry-run');
+// Try other wording for one clip: --key letter-sound/dalet --say "דֶ" --suffix -2
+// writes dalet-2.mp3 next to the real file so the versions can be compared.
+const onlyKey = value('key');
+const sayOverride = value('say');
+const suffix = value('suffix') || '';
 const force = flag('force');
 
 const key = process.env.ELEVENLABS_API_KEY;
@@ -48,7 +53,13 @@ if (!dry && (!key || !voice)) {
   process.exit(1);
 }
 
-const wanted = CLIPS.filter((c) => !only || only.includes(c.group)).filter((c) => force || !existsSync(join(audioDir, `${c.key}.mp3`)));
+if (sayOverride && !onlyKey) { console.error('--say needs --key, for example --key letter-sound/dalet'); process.exit(1); }
+const fileFor = (c) => join(audioDir, `${c.key}${suffix}.mp3`);
+const wanted = CLIPS
+  .filter((c) => (onlyKey ? c.key === onlyKey : !only || only.includes(c.group)))
+  .filter((c) => force || !existsSync(fileFor(c)))
+  .map((c) => (sayOverride ? { ...c, say: sayOverride } : c));
+if (onlyKey && !CLIPS.some((c) => c.key === onlyKey)) { console.error(`No clip named ${onlyKey}. See docs/recording-list.md for the names.`); process.exit(1); }
 const todo = wanted.slice(0, limit);
 console.log(`${todo.length} clip(s) to make (${wanted.length} missing, ${CLIPS.length} in total). Model ${model}, language ${language || 'auto'}.`);
 
@@ -84,7 +95,7 @@ async function synth(text) {
 let made = 0;
 const failed = [];
 for (const clip of todo) {
-  const file = join(audioDir, `${clip.key}.mp3`);
+  const file = fileFor(clip);
   if (dry) { console.log(`would make ${clip.key}  ←  ${clip.say}`); continue; }
   try {
     const audio = await synth(clip.say);
