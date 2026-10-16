@@ -6,9 +6,11 @@
   "description": "Hebrew reading practice app for young children (installable web app)",
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node --test test/logic.test.js",
+    "test": "node --test test/logic.test.js test/generate-audio.test.js",
     "test:e2e": "node test/e2e.mjs",
     "recording-list": "node tools/recording-list.mjs",
+    "audio-manifest": "node tools/audio-manifest.mjs",
+    "generate-audio": "node tools/generate-audio.mjs",
     "audio-manifest": "node tools/audio-manifest.mjs"
   },
   "devDependencies": {

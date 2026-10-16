@@ -4,28 +4,16 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LETTERS, VOWELS, WORDS } from '../src/content.js';
-import { makeToken } from '../src/lab-logic.js';
+import { CLIPS } from '../src/clip-list.js';
 
 const root = join(fileURLToPath(import.meta.url), '..', '..');
 const row = (key, text, note = '') =>
   `| ${existsSync(join(root, 'audio', `${key}.mp3`)) ? '✅' : '⬜'} | ${text} | \`audio/${key}.mp3\` | ${note} |`;
 const table = (rows) => ['| | להקליט | שם קובץ | הערה |', '|---|---|---|---|', ...rows].join('\n');
 
-const prompts = [
-  ['prompt/which-starts-with', 'איזו תמונה מתחילה בצליל', 'לפני צליל האות'],
-  ['prompt/try-again', 'כמעט! נסו שוב', 'חם ועדין, בלי אכזבה'],
-  ['prompt/pop-letter', 'פוצצו את הבועה עם האות', 'לפני צליל האות'],
-  ['prompt/build-word', 'בנו את המילה', 'לפני המילה'],
-  ['prompt/feed-monster', 'האכילו את המפלצת', 'לפני המילה'],
-  ['prompt/read-word', 'קראו את המילה', 'לפני המילה'],
-  ['prompt/read-together', 'בואו נקרא ביחד', 'חם, ללא אכזבה'],
-  ['prompt/well-done', 'כל הכבוד!', ''],
-];
-const sounds = LETTERS.map((l) => row(`letter-sound/${l.id}`, l.ch, 'הצליל בלבד ("דְּ"), לא השם "דלת"'));
-const words = WORDS.map((w) => row(`word/${w.id}`, `${w.emoji} ${w.he}`));
-const syl = LETTERS.flatMap((l) =>
-  VOWELS.map((v) => row(`syllable/${l.id}-${v.id}`, makeToken(l.ch, v.id), v.name)));
+const by = (g) => CLIPS.filter((c) => c.group === g);
+const rows = (g) => by(g).map((c) => row(c.key, c.say && c.say !== c.text ? `${c.text} (${c.say})` : c.text, c.note));
+const prompts = by('prompts'), names = by('names'), sounds = by('sounds'), words = by('words'), syl = by('syllables');
 
 const doc = `# רשימת הקלטות
 
@@ -34,18 +22,23 @@ const doc = `# רשימת הקלטות
 טיפים: חדר שקט, הטלפון במרחק כ-20 ס"מ, קליפ לכל פריט (1–2 שניות), בלי "אה" בהתחלה. שמרו כ-mp3 בשם שבטבלה, ואז הריצו \`npm run audio-manifest\`.
 
 ## שלב 1: הוראות ותגובות (${prompts.length})
-${table(prompts.map(([k, t, n]) => row(k, t, n)))}
+${table(rows('prompts'))}
 
-## שלב 2: צלילי האותיות (${sounds.length})
-${table(sounds)}
+## שלב 2: שמות האותיות (${names.length})
+כשמחפשים או בוחרים אות (בועות, מעבדה): "דלת", "בית".
+${table(rows('names'))}
 
-## שלב 3: מילים (${words.length})
-${table(words)}
+## שלב 3: צלילי האותיות (${sounds.length})
+כשמתאימים אות לצליל או מאייתים: "דְּ", "בְּ". לא השם.
+${table(rows('sounds'))}
 
-## שלב 4: הברות לפיתוח המעבדה (${syl.length})
+## שלב 4: מילים (${words.length})
+${table(rows('words'))}
+
+## שלב 5: הברות לפיתוח המעבדה (${syl.length})
 אופציונלי. כשכל ההברות של רצף קיימות, האפליקציה מחברת אותן. אחרת היא משתמשת בקול המכשיר.
-${table(syl)}
+${table(rows('syllables'))}
 `;
 await mkdir(join(root, 'docs'), { recursive: true });
 await writeFile(join(root, 'docs', 'recording-list.md'), doc);
-console.log(`docs/recording-list.md: ${prompts.length + sounds.length + words.length + syl.length} clips`);
+console.log(`docs/recording-list.md: ${prompts.length + names.length + sounds.length + words.length + syl.length} clips`);

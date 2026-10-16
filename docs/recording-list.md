@@ -4,85 +4,118 @@
 
 טיפים: חדר שקט, הטלפון במרחק כ-20 ס"מ, קליפ לכל פריט (1–2 שניות), בלי "אה" בהתחלה. שמרו כ-mp3 בשם שבטבלה, ואז הריצו `npm run audio-manifest`.
 
-## שלב 1: הוראות ותגובות (3)
+## שלב 1: הוראות ותגובות (8)
 | | להקליט | שם קובץ | הערה |
 |---|---|---|---|
-| ⬜ | איזו תמונה מתחילה בצליל | `audio/prompt/which-starts-with.mp3` | לפני צליל האות |
+| ⬜ | איזו תמונה מתחילה בצליל? | `audio/prompt/which-starts-with.mp3` | לפני צליל האות |
+| ⬜ | פוצצו את הבועות עם האות | `audio/prompt/pop-letter.mp3` | לפני צליל האות |
+| ⬜ | בנו את המילה | `audio/prompt/build-word.mp3` | לפני המילה |
+| ⬜ | האכילו את המפלצת | `audio/prompt/feed-monster.mp3` | לפני המילה |
+| ⬜ | קראו את המילה | `audio/prompt/read-word.mp3` | לפני המילה |
+| ⬜ | בואו נקרא ביחד | `audio/prompt/read-together.mp3` | חם, בלי אכזבה |
 | ⬜ | כמעט! נסו שוב | `audio/prompt/try-again.mp3` | חם ועדין, בלי אכזבה |
 | ⬜ | כל הכבוד! | `audio/prompt/well-done.mp3` |  |
 
-## שלב 2: צלילי האותיות (22)
+## שלב 2: שמות האותיות (22)
+כשמחפשים או בוחרים אות (בועות, מעבדה): "דלת", "בית".
 | | להקליט | שם קובץ | הערה |
 |---|---|---|---|
-| ⬜ | א | `audio/letter-sound/alef.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ב | `audio/letter-sound/bet.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ג | `audio/letter-sound/gimel.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ד | `audio/letter-sound/dalet.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ה | `audio/letter-sound/he.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ו | `audio/letter-sound/vav.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ז | `audio/letter-sound/zayin.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ח | `audio/letter-sound/chet.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ט | `audio/letter-sound/tet.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | י | `audio/letter-sound/yod.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | כ | `audio/letter-sound/kaf.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ל | `audio/letter-sound/lamed.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | מ | `audio/letter-sound/mem.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | נ | `audio/letter-sound/nun.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ס | `audio/letter-sound/samech.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ע | `audio/letter-sound/ayin.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | פ | `audio/letter-sound/pe.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | צ | `audio/letter-sound/tsadi.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ק | `audio/letter-sound/qof.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ר | `audio/letter-sound/resh.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ש | `audio/letter-sound/shin.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
-| ⬜ | ת | `audio/letter-sound/tav.mp3` | הצליל בלבד ("דְּ"), לא השם "דלת" |
+| ⬜ | א (אָלֶף) | `audio/letter-name/alef.mp3` | שם האות |
+| ⬜ | ב (בֵּית) | `audio/letter-name/bet.mp3` | שם האות |
+| ⬜ | ג (גִּימֶל) | `audio/letter-name/gimel.mp3` | שם האות |
+| ⬜ | ד (דָּלֶת) | `audio/letter-name/dalet.mp3` | שם האות |
+| ⬜ | ה (הֵא) | `audio/letter-name/he.mp3` | שם האות |
+| ⬜ | ו (וָו) | `audio/letter-name/vav.mp3` | שם האות |
+| ⬜ | ז (זַיִן) | `audio/letter-name/zayin.mp3` | שם האות |
+| ⬜ | ח (חֵית) | `audio/letter-name/chet.mp3` | שם האות |
+| ⬜ | ט (טֵית) | `audio/letter-name/tet.mp3` | שם האות |
+| ⬜ | י (יוֹד) | `audio/letter-name/yod.mp3` | שם האות |
+| ⬜ | כ (כָּף) | `audio/letter-name/kaf.mp3` | שם האות |
+| ⬜ | ל (לָמֶד) | `audio/letter-name/lamed.mp3` | שם האות |
+| ⬜ | מ (מֵם) | `audio/letter-name/mem.mp3` | שם האות |
+| ⬜ | נ (נוּן) | `audio/letter-name/nun.mp3` | שם האות |
+| ⬜ | ס (סָמֶךְ) | `audio/letter-name/samech.mp3` | שם האות |
+| ⬜ | ע (עַיִן) | `audio/letter-name/ayin.mp3` | שם האות |
+| ⬜ | פ (פֵּא) | `audio/letter-name/pe.mp3` | שם האות |
+| ⬜ | צ (צָדִי) | `audio/letter-name/tsadi.mp3` | שם האות |
+| ⬜ | ק (קוּף) | `audio/letter-name/qof.mp3` | שם האות |
+| ⬜ | ר (רֵישׁ) | `audio/letter-name/resh.mp3` | שם האות |
+| ⬜ | ש (שִׁין) | `audio/letter-name/shin.mp3` | שם האות |
+| ⬜ | ת (תָּו) | `audio/letter-name/tav.mp3` | שם האות |
 
-## שלב 3: מילים (41)
+## שלב 3: צלילי האותיות (22)
+כשמתאימים אות לצליל או מאייתים: "דְּ", "בְּ". לא השם.
 | | להקליט | שם קובץ | הערה |
 |---|---|---|---|
-| ⬜ | 🍌 בננה | `audio/word/banana.mp3` |  |
-| ⬜ | 🏠 בית | `audio/word/bayit.mp3` |  |
-| ⬜ | 🐪 גמל | `audio/word/gamal.mp3` |  |
-| ⬜ | 🥕 גזר | `audio/word/gezer.mp3` |  |
-| ⬜ | 🍦 גלידה | `audio/word/glida.mp3` |  |
-| ⬜ | 🚪 דלת | `audio/word/delet.mp3` |  |
-| ⬜ | 🐟 דג | `audio/word/dag.mp3` |  |
-| ⬜ | 🐻 דב | `audio/word/dov.mp3` |  |
-| ⬜ | 🚁 הליקופטר | `audio/word/halicopter.mp3` |  |
-| ⬜ | 🦓 זברה | `audio/word/zebra.mp3` |  |
-| ⬜ | ⏰ זמן | `audio/word/zman.mp3` |  |
-| ⬜ | 🐱 חתול | `audio/word/chatul.mp3` |  |
-| ⬜ | 🪟 חלון | `audio/word/chalon.mp3` |  |
-| ⬜ | 🚀 טיל | `audio/word/tayil.mp3` |  |
-| ⬜ | 👦 ילד | `audio/word/yeled.mp3` |  |
-| ⬜ | 🌙 ירח | `audio/word/yareach.mp3` |  |
-| ⬜ | 🐶 כלב | `audio/word/kelev.mp3` |  |
-| ⬜ | ⚽ כדור | `audio/word/kadur.mp3` |  |
-| ⬜ | 🍋 לימון | `audio/word/limon.mp3` |  |
-| ⬜ | ❤️ לב | `audio/word/lev.mp3` |  |
-| ⬜ | 💧 מים | `audio/word/mayim.mp3` |  |
-| ⬜ | 🚗 מכונית | `audio/word/mechonit.mp3` |  |
-| ⬜ | 🐍 נחש | `audio/word/nachash.mp3` |  |
-| ⬜ | 👟 נעל | `audio/word/naal.mp3` |  |
-| ⬜ | 🐴 סוס | `audio/word/sus.mp3` |  |
-| ⬜ | 📖 ספר | `audio/word/sefer.mp3` |  |
-| ⬜ | 🌳 עץ | `audio/word/etz.mp3` |  |
-| ⬜ | ☁️ ענן | `audio/word/anan.mp3` |  |
-| ⬜ | 🐘 פיל | `audio/word/pil.mp3` |  |
-| ⬜ | 🌸 פרח | `audio/word/perach.mp3` |  |
-| ⬜ | 🐸 צפרדע | `audio/word/tsfardea.mp3` |  |
-| ⬜ | 🐒 קוף | `audio/word/kof.mp3` |  |
-| ⬜ | ☕ קפה | `audio/word/kafe.mp3` |  |
-| ⬜ | 🚂 רכבת | `audio/word/rakevet.mp3` |  |
-| ⬜ | 🍎 רימון | `audio/word/rimon.mp3` |  |
-| ⬜ | ☀️ שמש | `audio/word/shemesh.mp3` |  |
-| ⬜ | 🦊 שועל | `audio/word/shualcha.mp3` |  |
-| ⬜ | 🍊 תפוז | `audio/word/tapuz.mp3` |  |
-| ⬜ | 🍓 תות | `audio/word/tut.mp3` |  |
-| ⬜ | 🦁 אריה | `audio/word/arye.mp3` |  |
-| ⬜ | 🍉 אבטיח | `audio/word/avatiach.mp3` |  |
+| ⬜ | א (אַ) | `audio/letter-sound/alef.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ב (בְּ) | `audio/letter-sound/bet.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ג (גְּ) | `audio/letter-sound/gimel.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ד (דְּ) | `audio/letter-sound/dalet.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ה (הְ) | `audio/letter-sound/he.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ו (וְ) | `audio/letter-sound/vav.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ז (זְ) | `audio/letter-sound/zayin.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ח (חְ) | `audio/letter-sound/chet.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ט (טְ) | `audio/letter-sound/tet.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | י (יְ) | `audio/letter-sound/yod.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | כ (כְּ) | `audio/letter-sound/kaf.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ל (לְ) | `audio/letter-sound/lamed.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | מ (מְ) | `audio/letter-sound/mem.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | נ (נְ) | `audio/letter-sound/nun.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ס (סְ) | `audio/letter-sound/samech.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ע (עַ) | `audio/letter-sound/ayin.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | פ (פְּ) | `audio/letter-sound/pe.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | צ (צְ) | `audio/letter-sound/tsadi.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ק (קְ) | `audio/letter-sound/qof.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ר (רְ) | `audio/letter-sound/resh.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ש (שְׁ) | `audio/letter-sound/shin.mp3` | הצליל בלבד, לא שם האות |
+| ⬜ | ת (תְּ) | `audio/letter-sound/tav.mp3` | הצליל בלבד, לא שם האות |
 
-## שלב 4: הברות לפיתוח המעבדה (154)
+## שלב 4: מילים (41)
+| | להקליט | שם קובץ | הערה |
+|---|---|---|---|
+| ⬜ | בננה (בָּנָנָה) | `audio/word/banana.mp3` | 🍌 |
+| ⬜ | בית (בַּיִת) | `audio/word/bayit.mp3` | 🏠 |
+| ⬜ | גמל (גָּמָל) | `audio/word/gamal.mp3` | 🐪 |
+| ⬜ | גזר (גֶּזֶר) | `audio/word/gezer.mp3` | 🥕 |
+| ⬜ | גלידה (גְּלִידָה) | `audio/word/glida.mp3` | 🍦 |
+| ⬜ | דלת (דֶּלֶת) | `audio/word/delet.mp3` | 🚪 |
+| ⬜ | דג (דָּג) | `audio/word/dag.mp3` | 🐟 |
+| ⬜ | דב (דֹּב) | `audio/word/dov.mp3` | 🐻 |
+| ⬜ | הליקופטר (הֶלִיקוֹפְּטֶר) | `audio/word/halicopter.mp3` | 🚁 |
+| ⬜ | זברה (זֶבְּרָה) | `audio/word/zebra.mp3` | 🦓 |
+| ⬜ | זמן (זְמַן) | `audio/word/zman.mp3` | ⏰ |
+| ⬜ | חתול (חָתוּל) | `audio/word/chatul.mp3` | 🐱 |
+| ⬜ | חלון (חַלּוֹן) | `audio/word/chalon.mp3` | 🪟 |
+| ⬜ | טיל (טִיל) | `audio/word/tayil.mp3` | 🚀 |
+| ⬜ | ילד (יֶלֶד) | `audio/word/yeled.mp3` | 👦 |
+| ⬜ | ירח (יָרֵחַ) | `audio/word/yareach.mp3` | 🌙 |
+| ⬜ | כלב (כֶּלֶב) | `audio/word/kelev.mp3` | 🐶 |
+| ⬜ | כדור (כַּדּוּר) | `audio/word/kadur.mp3` | ⚽ |
+| ⬜ | לימון (לִימוֹן) | `audio/word/limon.mp3` | 🍋 |
+| ⬜ | לב (לֵב) | `audio/word/lev.mp3` | ❤️ |
+| ⬜ | מים (מַיִם) | `audio/word/mayim.mp3` | 💧 |
+| ⬜ | מכונית (מְכוֹנִית) | `audio/word/mechonit.mp3` | 🚗 |
+| ⬜ | נחש (נָחָשׁ) | `audio/word/nachash.mp3` | 🐍 |
+| ⬜ | נעל (נַעַל) | `audio/word/naal.mp3` | 👟 |
+| ⬜ | סוס (סוּס) | `audio/word/sus.mp3` | 🐴 |
+| ⬜ | ספר (סֵפֶר) | `audio/word/sefer.mp3` | 📖 |
+| ⬜ | עץ (עֵץ) | `audio/word/etz.mp3` | 🌳 |
+| ⬜ | ענן (עָנָן) | `audio/word/anan.mp3` | ☁️ |
+| ⬜ | פיל (פִּיל) | `audio/word/pil.mp3` | 🐘 |
+| ⬜ | פרח (פֶּרַח) | `audio/word/perach.mp3` | 🌸 |
+| ⬜ | צפרדע (צְפַרְדֵּעַ) | `audio/word/tsfardea.mp3` | 🐸 |
+| ⬜ | קוף (קוֹף) | `audio/word/kof.mp3` | 🐒 |
+| ⬜ | קפה (קָפֶה) | `audio/word/kafe.mp3` | ☕ |
+| ⬜ | רכבת (רַכֶּבֶת) | `audio/word/rakevet.mp3` | 🚂 |
+| ⬜ | רדיו (רָדִיו) | `audio/word/radio.mp3` | 📻 |
+| ⬜ | שמש (שֶׁמֶשׁ) | `audio/word/shemesh.mp3` | ☀️ |
+| ⬜ | שועל (שׁוּעָל) | `audio/word/shualcha.mp3` | 🦊 |
+| ⬜ | תפוז (תַּפּוּז) | `audio/word/tapuz.mp3` | 🍊 |
+| ⬜ | תות (תּוּת) | `audio/word/tut.mp3` | 🍓 |
+| ⬜ | אריה (אַרְיֵה) | `audio/word/arye.mp3` | 🦁 |
+| ⬜ | אבטיח (אֲבַטִּיחַ) | `audio/word/avatiach.mp3` | 🍉 |
+
+## שלב 5: הברות לפיתוח המעבדה (154)
 אופציונלי. כשכל ההברות של רצף קיימות, האפליקציה מחברת אותן. אחרת היא משתמשת בקול המכשיר.
 | | להקליט | שם קובץ | הערה |
 |---|---|---|---|

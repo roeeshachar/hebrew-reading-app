@@ -50,7 +50,7 @@ export const WORDS = [
   ['pil', 'פיל', '🐘', 'פ'], ['perach', 'פרח', '🌸', 'פ'],
   ['tsfardea', 'צפרדע', '🐸', 'צ'],
   ['kof', 'קוף', '🐒', 'ק'], ['kafe', 'קפה', '☕', 'ק'],
-  ['rakevet', 'רכבת', '🚂', 'ר'], ['rimon', 'רימון', '🍎', 'ר'],
+  ['rakevet', 'רכבת', '🚂', 'ר'], ['radio', 'רדיו', '📻', 'ר'],
   ['shemesh', 'שמש', '☀️', 'ש'], ['shualcha', 'שועל', '🦊', 'ש'],
   ['tapuz', 'תפוז', '🍊', 'ת'], ['tut', 'תות', '🍓', 'ת'],
   ['arye', 'אריה', '🦁', 'א'], ['avatiach', 'אבטיח', '🍉', 'א'],
@@ -77,4 +77,34 @@ export const SYLLABLES = {
   kadur: ['כַּ', 'דּוּר'],
   nachash: ['נָ', 'חָשׁ'],
   mechonit: ['מְ', 'כוֹ', 'נִית'],
+};
+
+// What a voice should say for each word: the same word with nikud, so it is read the way
+// a child should learn it. Keyed by word id.
+export const WORD_NIKUD = {
+  banana: 'בָּנָנָה', bayit: 'בַּיִת', gamal: 'גָּמָל', gezer: 'גֶּזֶר', glida: 'גְּלִידָה',
+  delet: 'דֶּלֶת', dag: 'דָּג', dov: 'דֹּב', halicopter: 'הֶלִיקוֹפְּטֶר', zebra: 'זֶבְּרָה', zman: 'זְמַן',
+  chatul: 'חָתוּל', chalon: 'חַלּוֹן', tayil: 'טִיל', yeled: 'יֶלֶד', yareach: 'יָרֵחַ',
+  kelev: 'כֶּלֶב', kadur: 'כַּדּוּר', limon: 'לִימוֹן', lev: 'לֵב', mayim: 'מַיִם', mechonit: 'מְכוֹנִית',
+  nachash: 'נָחָשׁ', naal: 'נַעַל', sus: 'סוּס', sefer: 'סֵפֶר', etz: 'עֵץ', anan: 'עָנָן',
+  pil: 'פִּיל', perach: 'פֶּרַח', tsfardea: 'צְפַרְדֵּעַ', kof: 'קוֹף', kafe: 'קָפֶה',
+  rakevet: 'רַכֶּבֶת', radio: 'רָדִיו', shemesh: 'שֶׁמֶשׁ', shualcha: 'שׁוּעָל', tapuz: 'תַּפּוּז',
+  tut: 'תּוּת', arye: 'אַרְיֵה', avatiach: 'אֲבַטִּיחַ',
+};
+
+// The sound of each letter on its own, as text a voice can say: the letter with a sheva
+// (a short "d"), not the letter's name. Alef and ayin are silent with a sheva, so they take
+// a patach. Change an entry and generate that clip again if a letter sounds wrong.
+export const SOUND_TEXT = {
+  'א': 'אַ', 'ב': 'בְּ', 'ג': 'גְּ', 'ד': 'דְּ', 'ה': 'הְ', 'ו': 'וְ', 'ז': 'זְ', 'ח': 'חְ',
+  'ט': 'טְ', 'י': 'יְ', 'כ': 'כְּ', 'ל': 'לְ', 'מ': 'מְ', 'נ': 'נְ', 'ס': 'סְ', 'ע': 'עַ',
+  'פ': 'פְּ', 'צ': 'צְ', 'ק': 'קְ', 'ר': 'רְ', 'ש': 'שְׁ', 'ת': 'תְּ',
+};
+
+// A letter's name, as a voice should say it. Used when the child is finding or choosing a
+// letter (bubbles, the word lab). The sound (SOUND_TEXT) is for matching and spelling.
+export const LETTER_NAME = {
+  'א': 'אָלֶף', 'ב': 'בֵּית', 'ג': 'גִּימֶל', 'ד': 'דָּלֶת', 'ה': 'הֵא', 'ו': 'וָו', 'ז': 'זַיִן', 'ח': 'חֵית',
+  'ט': 'טֵית', 'י': 'יוֹד', 'כ': 'כָּף', 'ל': 'לָמֶד', 'מ': 'מֵם', 'נ': 'נוּן', 'ס': 'סָמֶךְ', 'ע': 'עַיִן',
+  'פ': 'פֵּא', 'צ': 'צָדִי', 'ק': 'קוּף', 'ר': 'רֵישׁ', 'ש': 'שִׁין', 'ת': 'תָּו',
 };

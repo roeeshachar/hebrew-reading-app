@@ -152,3 +152,16 @@ test('every reading word matches itself and nothing else in the list', async () 
     for (const b of words) if (a !== b) assert.ok(!matchesWord([b.he], a.text), `${b.id} must not pass for ${a.id}`);
   }
 });
+
+test('clip list: every word has nikud, every letter has a sound text, keys are unique', async () => {
+  const { CLIPS } = await import('../src/clip-list.js');
+  const { WORD_NIKUD, SOUND_TEXT, LETTERS } = await import('../src/content.js');
+  const strip = (s) => s.replace(/[\u0591-\u05C7]/g, '');
+  assert.equal(new Set(CLIPS.map((c) => c.key)).size, CLIPS.length);
+  for (const w of WORDS) assert.equal(strip(WORD_NIKUD[w.id] || ''), w.he, `nikud for ${w.id}`);
+  for (const l of LETTERS) assert.equal(strip(SOUND_TEXT[l.ch] || '')[0], l.ch, `sound text for ${l.id}`);
+  const { LETTER_NAME } = await import('../src/content.js');
+  for (const l of LETTERS) assert.ok(LETTER_NAME[l.ch], `name for ${l.id}`);
+  assert.notEqual(LETTER_NAME['ד'], SOUND_TEXT['ד'], 'the name and the sound are different clips');
+  assert.ok(CLIPS.every((c) => c.say && /^[a-z-]+\/[a-z-]+$/.test(c.key)));
+});

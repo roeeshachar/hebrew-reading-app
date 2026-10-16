@@ -4,6 +4,7 @@ import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
+import { SOUND_TEXT, LETTER_NAME } from '../src/content.js';
 import { mkdir } from 'node:fs/promises';
 
 const PORT = 8123;
@@ -100,7 +101,8 @@ try {
           const b = [...document.querySelectorAll('#arena .bub')].find((n) => {
             const r = n.getBoundingClientRect();
             return !n.classList.contains('pop') && !n.classList.contains('bonk') && (n.dataset.letter === letter) === wantTarget
-              && r.top > arena.top + 8 && r.bottom < arena.bottom - 90 && r.left > arena.left && r.right < arena.right;
+              && r.top > arena.top + 8 && r.bottom < arena.bottom - 90 && r.left > arena.left && r.right < arena.right
+              && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === n; // not hidden behind another bubble
           });
           if (!b) return null;
           const r = b.getBoundingClientRect();
@@ -132,7 +134,8 @@ try {
     await page.waitForSelector('.banner.good');
     if (c.type === 'build' || c.type === 'syllable') {
       // The last letter or syllable is said, then the word, then the praise, in that order.
-      const lastPiece = c.type === 'build' ? (({ 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' })[c.slots.at(-1)] || c.slots.at(-1)) : c.parts.at(-1);
+      const lastBase = ({ 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' })[c.slots?.at(-1)] || c.slots?.at(-1);
+      const lastPiece = c.type === 'build' ? SOUND_TEXT[lastBase] : c.parts.at(-1);
       await page.waitForFunction(() => window.__said.at(-1) === 'כל הכבוד');
       assert.deepEqual((await page.evaluate(() => window.__said)).slice(-3), [lastPiece, c.word.he, 'כל הכבוד'], `${c.type}: the last piece is read before the word`);
     }
@@ -231,8 +234,13 @@ try {
   assert.equal(await page.locator('.vow button').count(), 8);
   assert.equal(await page.locator('.vow button').first().innerText(), 'מ');
   assert.equal((await page.evaluate(() => window.__lab())).shown, 'ם', 'final form while it is the last letter');
+  assert.equal((await page.evaluate(() => window.__said)).at(-1), LETTER_NAME['מ'], 'tapping a letter in the lab says its name');
   await page.click('[data-v=kamatz]');
   assert.equal((await page.evaluate(() => window.__lab())).shown, 'ם\u05B8');
+  assert.equal((await page.evaluate(() => window.__said)).at(-1), 'מָ', 'choosing a vowel says the syllable');
+  await page.click('[data-v=""]');
+  assert.equal((await page.evaluate(() => window.__said)).at(-1), LETTER_NAME['מ'], 'no vowel says the name again');
+  await page.click('[data-v=kamatz]');
   await page.click('[data-v=chirik]'); // try another vowel on the same letter
   assert.equal((await page.evaluate(() => window.__lab())).seq.length, 1, 'vowel replaces, does not add');
   await page.click('[data-k=א]');

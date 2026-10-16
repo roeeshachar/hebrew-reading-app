@@ -1,4 +1,4 @@
-import { LETTERS, LETTER_ID, VOWELS } from './content.js';
+import { LETTERS, LETTER_ID, VOWELS, LETTER_NAME, SOUND_TEXT } from './content.js';
 import { MAX_TOKENS, makeToken, addToken, removeLast, applyVowel, display } from './lab-logic.js';
 import { buildSession, buildAccepts, syllableAccepts, MODES } from './challenges.js';
 import * as audio from './audio.js';
@@ -10,6 +10,10 @@ import * as progress from './progress.js';
 const app = document.getElementById('app');
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// A letter can be said by its name ("dalet", for finding and choosing it) or by its sound
+// ("d", for matching and spelling). The text is the fallback for the device voice.
+const nameClip = (l) => [`letter-name/${LETTER_ID[l]}`, LETTER_NAME[l]];
+const soundClip = (l) => [`letter-sound/${LETTER_ID[l]}`, SOUND_TEXT[l]];
 
 // ---- state ----
 // pending: the letter just tapped, whose vowel can still be chosen.
@@ -203,7 +207,7 @@ function render() {
 }
 function mountArena(c) {
   stopArena = startArena(document.getElementById('arena'), c, {
-    onTap: (l) => audio.play([[`letter-sound/${LETTER_ID[l]}`, l]]),
+    onTap: (l) => audio.play([nameClip(l)]),
     onHit: (n) => {
       session.st.hits = n;
       document.querySelectorAll('.hits i').forEach((dot, k) => dot.classList.toggle('on', k < n));
@@ -225,8 +229,8 @@ function say() {
   const c = session.cs[session.i];
   const word = [`word/${c.word?.id}`, c.word?.he];
   const items = {
-    starts: [['prompt/which-starts-with', 'איזו תמונה מתחילה בצליל'], [`letter-sound/${LETTER_ID[c.letter]}`, c.letter]],
-    bubbles: [['prompt/pop-letter', 'פוצצו את הבועות עם האות'], [`letter-sound/${LETTER_ID[c.letter]}`, c.letter]],
+    starts: [['prompt/which-starts-with', 'איזו תמונה מתחילה בצליל'], soundClip(c.letter)],
+    bubbles: [['prompt/pop-letter', 'פוצצו את הבועות עם האות'], nameClip(c.letter)],
     build: [['prompt/build-word', 'בנו את המילה'], word],
     syllable: [['prompt/feed-monster', 'האכילו את המפלצת'], word],
     read: [['prompt/read-word', 'קראו את המילה']],
@@ -301,7 +305,7 @@ function tapTile(i) { // build and syllable
   const c = session.cs[session.i], st = session.st;
   const piece = c.tray[i];
   const ok = c.type === 'build' ? buildAccepts(c, st.placed, piece) : syllableAccepts(c, st.placed, piece);
-  const say1 = c.type === 'build' ? [[`letter-sound/${LETTER_ID[piece]}`, piece]] : [[null, piece]];
+  const say1 = c.type === 'build' ? [soundClip(piece)] : [[null, piece]];
   if (!ok) {
     if (session.misses + 1 >= 2) { // show the right tile instead of failing
       session.misses++;
@@ -316,7 +320,7 @@ function placeTile(i, c, st) {
   st.used.push(i); st.placed++; st.picked = null;
   const total = c.type === 'build' ? c.slots.length : c.parts.length;
   // Each piece is said, the last one too. The finished word follows once it ends.
-  audio.play(c.type === 'build' ? [[`letter-sound/${LETTER_ID[c.tray[i]]}`, c.tray[i]]] : [[null, c.tray[i]]]);
+  audio.play(c.type === 'build' ? [soundClip(c.tray[i])] : [[null, c.tray[i]]]);
   if (st.placed >= total) return finishChallenge([], true);
   render();
 }
@@ -336,21 +340,22 @@ function tapLetter(ch) {
   if (lab.seq.length >= MAX_TOKENS) return;
   lab.seq = addToken(lab.seq, ch);
   lab.pending = ch;
-  audio.play([[`letter-sound/${LETTER_ID[ch]}`, ch]]);
+  audio.play([nameClip(ch)]);
   render();
 }
 function chooseVowel(vowelId) {
   if (!lab.pending) return;
   lab.seq = applyVowel(lab.seq, lab.pending, vowelId);
   const id = LETTER_ID[lab.pending];
-  audio.play([[vowelId ? `syllable/${id}-${vowelId}` : `letter-sound/${id}`, lab.seq[lab.seq.length - 1]]]);
+  audio.play([vowelId ? [`syllable/${id}-${vowelId}`, lab.seq[lab.seq.length - 1]] : nameClip(lab.pending)]);
   render();
 }
 function playLab() {
   const parts = lab.seq.map((t) => {
     const letter = [...t][0];
     const vowel = VOWELS.find((v) => makeToken(letter, v.id) === t);
-    return [vowel ? `syllable/${LETTER_ID[letter]}-${vowel.id}` : `letter-sound/${LETTER_ID[letter]}`, t];
+    // A letter with no vowel has no clip, so a sequence containing one is read whole by the device voice.
+    return [vowel ? `syllable/${LETTER_ID[letter]}-${vowel.id}` : null, t];
   });
   audio.playSequence(parts, display(lab.seq));
 }
