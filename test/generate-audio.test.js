@@ -26,7 +26,7 @@ test('generate-audio sends the voice, model and spoken text, and saves one file 
       seen.push({ url: req.url, key: req.headers['xi-api-key'], body: JSON.parse(body) });
       res.writeHead(200, { 'content-type': 'audio/mpeg' }).end(Buffer.from('ID3fake'));
     });
-  }).listen(0);
+  }).listen(0).unref();
   await new Promise((r) => server.once('listening', r));
   const dir = await mkdtemp(join(tmpdir(), 'audio-'));
   const env = { ELEVENLABS_API_KEY: 'k', VOICE_ID: 'v1', MODEL_ID: 'm1', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir };
@@ -48,7 +48,7 @@ test('generate-audio sends the voice, model and spoken text, and saves one file 
   const second = await run(env, ['--only', 'sounds', '--limit', '2']);
   assert.equal(second.code, 0, second.out);
   assert.equal(seen.length, 2);
-  assert.equal(seen[0].body.text, 'דְּ', 'dalet comes next: skips the clips that exist');
+  assert.equal(seen[0].body.text, 'דֶ', 'dalet comes next: skips the clips that exist');
 
   // Words are spoken with nikud.
   seen.length = 0;
@@ -72,7 +72,7 @@ test('the default model is v4, and a rejected stability value is retried without
       if (b.voice_settings) return res.writeHead(422).end('{"detail":"invalid voice_settings stability"}');
       res.writeHead(200, { 'content-type': 'audio/mpeg' }).end(Buffer.from('ID3'));
     });
-  }).listen(0);
+  }).listen(0).unref();
   await new Promise((r) => server.once('listening', r));
   const dir = await mkdtemp(join(tmpdir(), 'audio-'));
   const env = { ELEVENLABS_API_KEY: 'k', VOICE_ID: 'v', MODEL_ID: '', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir };
@@ -91,7 +91,7 @@ test('settings can come from a .env file, and the real environment wins', async 
     let body = '';
     req.on('data', (d) => { body += d; });
     req.on('end', () => { seen.push({ url: req.url, key: req.headers['xi-api-key'], model: JSON.parse(body).model_id }); res.writeHead(200).end(Buffer.from('x')); });
-  }).listen(0);
+  }).listen(0).unref();
   await new Promise((r) => server.once('listening', r));
   const dir = await mkdtemp(join(tmpdir(), 'audio-'));
   await writeFile('.env', `# comment\nELEVENLABS_API_KEY="from-file"\nexport VOICE_ID='voice-file'\nMODEL_ID=model-file\n`);
@@ -117,7 +117,7 @@ test('settings can come from a .env file, and the real environment wins', async 
 
 test('a payment-required answer stops the run with an explanation instead of failing every clip', async () => {
   const seen = [];
-  const server = createServer((req, res) => { seen.push(req.url); req.resume(); req.on('end', () => res.writeHead(402).end('{"detail":{"code":"paid_plan_required"}}')); }).listen(0);
+  const server = createServer((req, res) => { seen.push(req.url); req.resume(); req.on('end', () => res.writeHead(402).end('{"detail":{"code":"paid_plan_required"}}')); }).listen(0).unref();
   await new Promise((r) => server.once('listening', r));
   const dir = await mkdtemp(join(tmpdir(), 'audio-'));
   const r = await run({ ELEVENLABS_API_KEY: 'k', VOICE_ID: 'v', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir }, ['--only', 'sounds', '--limit', '5']);
@@ -129,7 +129,7 @@ test('a payment-required answer stops the run with an explanation instead of fai
 
 test('--key with --say and --suffix writes a variant next to the real clip', async () => {
   const seen = [];
-  const server = createServer((req, res) => { let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => { seen.push(JSON.parse(b).text); res.writeHead(200).end(Buffer.from('v')); }); }).listen(0);
+  const server = createServer((req, res) => { let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => { seen.push(JSON.parse(b).text); res.writeHead(200).end(Buffer.from('v')); }); }).listen(0).unref();
   await new Promise((r) => server.once('listening', r));
   const dir = await mkdtemp(join(tmpdir(), 'audio-'));
   const env = { ELEVENLABS_API_KEY: 'k', VOICE_ID: 'v', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir };
