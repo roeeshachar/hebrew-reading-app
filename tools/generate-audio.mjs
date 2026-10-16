@@ -1,19 +1,31 @@
 // Makes the app's sound clips with ElevenLabs text to speech.
 // Run it on your own computer; it needs your API key and the network.
 //
-//   export ELEVENLABS_API_KEY=...   VOICE_ID=...   MODEL_ID=...   (MODEL_ID defaults to eleven_v4)
+//   Put ELEVENLABS_API_KEY=... and VOICE_ID=... in a .env file (see .env.example),
+//   or export them in the terminal. MODEL_ID defaults to eleven_v4.
 //   node tools/generate-audio.mjs --only prompts,sounds --limit 6     (a small trial)
 //   node tools/generate-audio.mjs                                     (everything)
 //
 // Clips that already exist are skipped, so you can delete one bad file and run it again.
 // Afterwards: npm run audio-manifest
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CLIPS } from '../src/clip-list.js';
 
 const root = join(fileURLToPath(import.meta.url), '..', '..');
+// Settings can live in a .env file next to package.json (it is not committed).
+// Real environment variables win over the file.
+try {
+  const text = await readFile(join(root, '.env'), 'utf8');
+  for (const line of text.split(/\r?\n/)) {
+    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!m || m[1] in process.env) continue;
+    process.env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2');
+  }
+} catch { /* no .env file */ }
+
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(`--${name}`);
 const value = (name) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : undefined; };

@@ -83,3 +83,34 @@ test('the default model is v4, and a rejected stability value is retried without
   assert.equal(seen[1].voice_settings, undefined, 'retried without stability');
   server.close();
 });
+
+test('settings can come from a .env file, and the real environment wins', async () => {
+  const { writeFile, rm } = await import('node:fs/promises');
+  const seen = [];
+  const server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (d) => { body += d; });
+    req.on('end', () => { seen.push({ url: req.url, key: req.headers['xi-api-key'], model: JSON.parse(body).model_id }); res.writeHead(200).end(Buffer.from('x')); });
+  }).listen(0);
+  await new Promise((r) => server.once('listening', r));
+  const dir = await mkdtemp(join(tmpdir(), 'audio-'));
+  await writeFile('.env', `# comment\nELEVENLABS_API_KEY="from-file"\nexport VOICE_ID='voice-file'\nMODEL_ID=model-file\n`);
+  try {
+    const env = { ELEVENLABS_API_KEY: '', VOICE_ID: '', ELEVENLABS_BASE_URL: `http://localhost:${server.address().port}`, AUDIO_DIR: dir };
+    delete env.MODEL_ID;
+    const clean = { ...process.env }; delete clean.ELEVENLABS_API_KEY; delete clean.VOICE_ID; delete clean.MODEL_ID;
+    const run2 = (extra) => new Promise((resolve) => {
+      const p = spawn('node', ['tools/generate-audio.mjs', '--only', 'prompts', '--limit', '1'], { env: { ...clean, ELEVENLABS_BASE_URL: env.ELEVENLABS_BASE_URL, AUDIO_DIR: dir, ...extra } });
+      p.on('close', resolve);
+    });
+    assert.equal(await run2({}), 0);
+    assert.deepEqual(seen[0], { url: '/v1/text-to-speech/voice-file?output_format=mp3_44100_128', key: 'from-file', model: 'model-file' });
+    await rm(dir, { recursive: true });
+    await mkdtemp(join(tmpdir(), 'audio-'));
+    assert.equal(await run2({ VOICE_ID: 'voice-env' }), 0);
+    assert.match(seen[1].url, /text-to-speech\/voice-env\?/, 'an exported variable overrides the file');
+  } finally {
+    await rm('.env', { force: true });
+    server.close();
+  }
+});
