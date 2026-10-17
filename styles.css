@@ -143,4 +143,11 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .card.consent .small{font-size:14px;color:var(--mut)}
 .card.consent .big{font-size:64px}
 @media (max-height:720px){.stn .b{width:62px;height:62px;font-size:30px;border-radius:22px}.stn .n{font-size:12.5px}.abg{font-size:24px}.readcard .mon{font-size:56px}.bigword{font-size:60px}.card.consent .big{font-size:44px}.card.consent h1{font-size:24px}}
+/* bubbles: spelling a word */
+.pic.mini{width:84px;height:84px;font-size:46px;margin:0;flex:none}
+.pic.mini small{width:34px;height:34px;font-size:16px}
+.slots.sm{margin-top:6px;gap:6px;justify-content:flex-start;direction:rtl}
+.slot.sm{width:44px;height:54px;font-size:32px;border-width:3px;border-radius:12px}
+#app.boss .pic.mini{width:64px;height:64px;font-size:34px}
+#app.boss .slot.sm{width:38px;height:46px;font-size:26px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}

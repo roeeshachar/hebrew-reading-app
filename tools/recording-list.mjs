@@ -13,7 +13,7 @@ const table = (rows) => ['| | להקליט | שם קובץ | הערה |', '|---|
 
 const by = (g) => CLIPS.filter((c) => c.group === g);
 const rows = (g) => by(g).map((c) => row(c.key, c.say && c.say !== c.text ? `${c.text} (${c.say})` : c.text, c.note));
-const prompts = by('prompts'), names = by('names'), sounds = by('sounds'), words = by('words'), syl = by('syllables');
+const prompts = by('prompts'), names = by('names'), sounds = by('sounds'), words = by('words'), syl = by('syllables'), parts = by('parts');
 
 const doc = `# רשימת הקלטות
 
@@ -38,7 +38,11 @@ ${table(rows('words'))}
 ## שלב 5: הברות לפיתוח המעבדה (${syl.length})
 אופציונלי. כשכל ההברות של רצף קיימות, האפליקציה מחברת אותן. אחרת היא משתמשת בקול המכשיר.
 ${table(rows('syllables'))}
+
+## שלב 6: חלקי מילים למפלצת (${parts.length})
+המפלצת אוכלת הברות שלמות של מילים, ולכן הן קליפים נפרדים.
+${table(rows('parts'))}
 `;
 await mkdir(join(root, 'docs'), { recursive: true });
 await writeFile(join(root, 'docs', 'recording-list.md'), doc);
-console.log(`docs/recording-list.md: ${prompts.length + names.length + sounds.length + words.length + syl.length} clips`);
+console.log(`docs/recording-list.md: ${prompts.length + names.length + sounds.length + words.length + syl.length + parts.length} clips`);

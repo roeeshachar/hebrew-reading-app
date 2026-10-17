@@ -100,11 +100,12 @@ test('every game builds a full session that can be solved', async () => {
       for (const c of cs) {
         if (c.type === 'starts') assert.equal(c.options.filter((o) => o.letter === c.letter).length, 1);
         if (c.type === 'bubbles') {
-          assert.equal(c.need, 3);
+          assert.ok(c.letters.length >= 2 && c.letters.length <= 4);
+          assert.equal(c.need, c.letters.length);
+          assert.deepEqual(c.letters.map((l) => l), [...c.word.he].map((ch) => ({ 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' })[ch] || ch));
           assert.ok(c.pool.length >= 6);
           assert.equal(new Set(c.pool).size, c.pool.length);
-          assert.ok(!c.pool.includes(c.letter));
-          for (const o of c.pool) assert.ok(!soundConflict(o, c.letter));
+          for (const l of c.letters) assert.ok(!c.pool.includes(l), 'the pool holds only other letters');
         }
         if (c.type === 'build') {
           // Tapping the right tile for each slot in turn finishes the word.
@@ -163,5 +164,23 @@ test('clip list: every word has nikud, every letter has a sound text, keys are u
   const { LETTER_NAME } = await import('../src/content.js');
   for (const l of LETTERS) assert.ok(LETTER_NAME[l.ch], `name for ${l.id}`);
   assert.notEqual(LETTER_NAME['ד'], SOUND_TEXT['ד'], 'the name and the sound are different clips');
-  assert.ok(CLIPS.every((c) => c.say && /^[a-z-]+\/[a-z-]+$/.test(c.key)));
+  assert.ok(CLIPS.every((c) => c.say && /^[a-z-]+\/[a-z0-9-]+$/.test(c.key)));
+});
+
+test('"what starts with" never asks for a word spelled like its letter\'s name', async () => {
+  const { NAME_WORD_IDS } = await import('../src/content.js');
+  const { buildSession } = await import('../src/challenges.js');
+  assert.ok(NAME_WORD_IDS.includes('delet') && NAME_WORD_IDS.includes('kof'), 'דלת and קוף give the answer away');
+  for (let i = 0; i < 300; i++) for (const c of buildSession('starts')) assert.ok(!NAME_WORD_IDS.includes(c.target.id), c.target.id);
+});
+
+test('every syllable the monster can serve has a clip', async () => {
+  const { PART_CLIPS, SYLLABLES } = await import('../src/content.js');
+  const { CLIPS } = await import('../src/clip-list.js');
+  const keys = new Set(CLIPS.map((c) => c.key));
+  for (const parts of Object.values(SYLLABLES)) for (const p of parts) {
+    assert.ok(PART_CLIPS.has(p), `no clip for ${p}`);
+    assert.ok(keys.has(PART_CLIPS.get(p)), `${PART_CLIPS.get(p)} is not on the clip list`);
+  }
+  assert.equal(new Set(PART_CLIPS.values()).size, PART_CLIPS.size, 'keys are unique');
 });

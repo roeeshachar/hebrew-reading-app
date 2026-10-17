@@ -108,3 +108,18 @@ export const LETTER_NAME = {
   'ט': 'טֵית', 'י': 'יוֹד', 'כ': 'כָּף', 'ל': 'לָמֶד', 'מ': 'מֵם', 'נ': 'נוּן', 'ס': 'סָמֶךְ', 'ע': 'עַיִן',
   'פ': 'פֵּא', 'צ': 'צָדִי', 'ק': 'קוּף', 'ר': 'רֵישׁ', 'ש': 'שִׁין', 'ת': 'תָּו',
 };
+
+// The pieces the syllable monster eats, each with the clip that says it. A piece that
+// appears in several words shares one clip, named after the first word that uses it.
+export const PART_CLIPS = (() => {
+  const map = new Map();
+  for (const [id, parts] of Object.entries(SYLLABLES)) {
+    parts.forEach((p, k) => { if (!map.has(p)) map.set(p, `part/${id}-${k + 1}`); });
+  }
+  return map;
+})();
+
+// Words that are spelled exactly like their first letter's name (דלת, קוף). Saying that
+// letter's name would give the answer away, so "what starts with…" never asks for them.
+const stripNikud = (t) => t.replace(/[\u0591-\u05C7]/g, '');
+export const NAME_WORD_IDS = WORDS.filter((w) => stripNikud(LETTER_NAME[w.letter] || '') === w.he).map((w) => w.id);

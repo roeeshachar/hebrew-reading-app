@@ -57,7 +57,7 @@ test('generate-audio sends the voice, model and spoken text, and saves one file 
 
   const dry = await run({ ...env, ELEVENLABS_API_KEY: '', VOICE_ID: '' }, ['--dry-run', '--only', 'prompts']);
   assert.equal(dry.code, 0, dry.out);
-  assert.match(dry.out, /would make prompt\/which-starts-with/);
+  assert.match(dry.out, /would make prompt\/what-starts-with/);
   server.close();
 });
 

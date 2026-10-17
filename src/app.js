@@ -1,4 +1,4 @@
-import { LETTERS, LETTER_ID, VOWELS, LETTER_NAME, SOUND_TEXT } from './content.js';
+import { LETTERS, LETTER_ID, VOWELS, LETTER_NAME, SOUND_TEXT, PART_CLIPS } from './content.js';
 import { MAX_TOKENS, makeToken, addToken, removeLast, applyVowel, display } from './lab-logic.js';
 import { buildSession, buildAccepts, syllableAccepts, MODES } from './challenges.js';
 import * as audio from './audio.js';
@@ -14,6 +14,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ("d", for matching and spelling). The text is the fallback for the device voice.
 const nameClip = (l) => [`letter-name/${LETTER_ID[l]}`, LETTER_NAME[l]];
 const soundClip = (l) => [`letter-sound/${LETTER_ID[l]}`, SOUND_TEXT[l]];
+const partClip = (p) => [PART_CLIPS.get(p), p]; // a syllable the monster eats
 
 // ---- state ----
 // pending: the letter just tapped, whose vowel can still be chosen.
@@ -44,16 +45,16 @@ const draw = {
       else if (session.st.picked === i) cls += ' retry';
       return `<button class="${cls}" data-opt="${i}" ${session.answered ? 'disabled' : ''}>${w.emoji}<span>${esc(w.he)}</span></button>`;
     }).join('');
-    return `<div class="prompt"><p class="sub">איזו תמונה מתחילה בצליל…</p>
+    return `<div class="prompt"><p class="sub">מה מתחיל באות…</p>
       <button class="sound" data-say aria-label="השמע שוב">${c.letter}<small>🔊</small></button></div>
       <div class="opts">${opts}</div>`;
   },
   bubbles(c) {
-    const filled = session.answered ? c.need : session.st.hits;
-    const hits = Array.from({ length: c.need }, (_, k) => `<i class="${k < filled ? 'on' : ''}"></i>`).join('');
+    const filled = session.answered ? c.slots.length : session.st.hits;
+    const slots = c.slots.map((ch, k) => `<span class="slot sm ${k < filled ? 'full' : ''}">${k < filled ? ch : ''}</span>`).join('');
     return `<div class="bubprompt">
-      <button class="sound mini" data-say aria-label="השמע שוב">${c.letter}<small>🔊</small></button>
-      <div class="bubtext"><p class="sub">פוצצו את הבועות עם האות</p><div class="hits" aria-label="${c.need} בועות לפוצץ">${hits}</div></div></div>
+      <button class="pic mini" data-say aria-label="השמע שוב">${c.word.emoji}<small>🔊</small></button>
+      <div class="bubtext"><p class="sub">פוצצו את האותיות של המילה לפי הסדר</p><div class="slots sm" aria-label="${c.slots.length} אותיות">${slots}</div></div></div>
       <div class="arena" id="arena"></div>`;
   },
   read(c) {
@@ -93,8 +94,7 @@ const draw = {
 function footer(c) {
   if (session.answered) {
     const text = c.type === 'starts' ? `${c.target.he}! ${c.target.he} מתחיל ב־${c.letter}`
-      : c.type === 'bubbles' ? `האות ${c.letter}!`
-        : `${c.word.he}!`;
+      : `${c.word.he}!`;
     return bannerGood(text);
   }
   return session.st.picked != null ? bannerTry : '';
@@ -114,7 +114,7 @@ const screens = {
       <h1>עולם הקריאה</h1><p class="sub">בוא נשחק באותיות!</p>
       <div class="map">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M68 11 C 68 19, 30 19, 30 27 C 30 35, 68 35, 68 43 C 68 51, 30 51, 30 59 C 30 67, 68 67, 68 75 C 68 83, 30 83, 30 91" stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="1.5 3" vector-effect="non-scaling-stroke" stroke-linecap="round"/></svg>
-        ${stn(68, 11, '#ffd966', '<span class="abg">אבג</span>', 'מה מתחיל ב־…‏', 'starts', 'starts')}
+        ${stn(68, 11, '#ffd966', '<span class="abg">אבג</span>', 'מה מתחיל באות…', 'starts', 'starts')}
         ${stn(30, 27, '#9fe3d0', '🫧', 'בועות האותיות', 'bubbles', 'bubbles')}
         ${stn(68, 43, '#ffb3a7', '🧩', 'בונים מילה', 'build', 'build')}
         ${stn(30, 59, '#c9b8ff', '👾', 'מפלצת ההברות', 'syllable', 'syllable')}
@@ -206,11 +206,14 @@ function render() {
   }
 }
 function mountArena(c) {
-  stopArena = startArena(document.getElementById('arena'), c, {
+  stopArena = startArena(document.getElementById('arena'), { letters: c.letters, pool: c.pool }, {
     onTap: (l) => audio.play([nameClip(l)]),
     onHit: (n) => {
       session.st.hits = n;
-      document.querySelectorAll('.hits i').forEach((dot, k) => dot.classList.toggle('on', k < n));
+      document.querySelectorAll('.slots.sm .slot').forEach((slot, k) => {
+        slot.classList.toggle('full', k < n);
+        slot.textContent = k < n ? c.slots[k] : '';
+      });
     },
     onWrong: () => { session.misses++; },
     onDone: () => finishChallenge([], true),
@@ -229,8 +232,8 @@ function say() {
   const c = session.cs[session.i];
   const word = [`word/${c.word?.id}`, c.word?.he];
   const items = {
-    starts: [['prompt/which-starts-with', 'איזו תמונה מתחילה בצליל'], soundClip(c.letter)],
-    bubbles: [['prompt/pop-letter', 'פוצצו את הבועות עם האות'], nameClip(c.letter)],
+    starts: [['prompt/what-starts-with', 'מה מתחיל באות'], nameClip(c.letter)],
+    bubbles: [['prompt/pop-word', 'פוצצו את האותיות של המילה לפי הסדר'], word],
     build: [['prompt/build-word', 'בנו את המילה'], word],
     syllable: [['prompt/feed-monster', 'האכילו את המפלצת'], word],
     read: [['prompt/read-word', 'קראו את המילה']],
@@ -305,7 +308,7 @@ function tapTile(i) { // build and syllable
   const c = session.cs[session.i], st = session.st;
   const piece = c.tray[i];
   const ok = c.type === 'build' ? buildAccepts(c, st.placed, piece) : syllableAccepts(c, st.placed, piece);
-  const say1 = c.type === 'build' ? [soundClip(piece)] : [[null, piece]];
+  const say1 = c.type === 'build' ? [soundClip(piece)] : [partClip(piece)];
   if (!ok) {
     if (session.misses + 1 >= 2) { // show the right tile instead of failing
       session.misses++;
@@ -320,7 +323,7 @@ function placeTile(i, c, st) {
   st.used.push(i); st.placed++; st.picked = null;
   const total = c.type === 'build' ? c.slots.length : c.parts.length;
   // Each piece is said, the last one too. The finished word follows once it ends.
-  audio.play(c.type === 'build' ? [soundClip(c.tray[i])] : [[null, c.tray[i]]]);
+  audio.play(c.type === 'build' ? [soundClip(c.tray[i])] : [partClip(c.tray[i])]);
   if (st.placed >= total) return finishChallenge([], true);
   render();
 }

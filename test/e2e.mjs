@@ -18,6 +18,8 @@ const errors = [];
 let failed = false;
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  // The repository now holds real recordings; the test wants the fake voice so it can read what is said.
+  await ctx.route('**/audio/manifest.json', (r) => r.fulfill({ json: { clips: [] } }));
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -94,25 +96,26 @@ try {
       }
       await page.locator('.opt').nth(c.options.findIndex((o) => o.id === c.target.id)).click();
     } else if (c.type === 'bubbles') {
-      // Shoot the first visible bubble with the wrong letter, then three with the right one.
-      const tap = async (wantTarget) => {
-        const p = await page.waitForFunction(({ letter, wantTarget }) => {
+      // Pop the letters of the word in order; first shoot one wrong bubble.
+      const tap = async (accept) => {
+        const p = await page.waitForFunction((accept) => {
           const arena = document.querySelector('#arena').getBoundingClientRect();
           const b = [...document.querySelectorAll('#arena .bub')].find((n) => {
             const r = n.getBoundingClientRect();
-            return !n.classList.contains('pop') && !n.classList.contains('bonk') && (n.dataset.letter === letter) === wantTarget
+            return !n.classList.contains('pop') && !n.classList.contains('bonk')
+              && (accept.is ? n.dataset.letter === accept.is : n.dataset.letter !== accept.not)
               && r.top > arena.top + 8 && r.bottom < arena.bottom - 90 && r.left > arena.left && r.right < arena.right
               && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === n; // not hidden behind another bubble
           });
           if (!b) return null;
           const r = b.getBoundingClientRect();
           return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-        }, { letter: c.letter, wantTarget }, { timeout: 8000 });
+        }, accept, { timeout: 8000 });
         const { x, y } = await p.jsonValue();
         await page.mouse.click(x, y);
       };
-      if (makeMistake) { await tap(false); await page.waitForTimeout(700); }
-      for (let n = 0; n < c.need; n++) { await tap(true); await page.waitForTimeout(450); }
+      if (makeMistake) { await tap({ not: c.letters[0] }); await page.waitForTimeout(700); }
+      for (const letter of c.letters) { await tap({ is: letter }); await page.waitForTimeout(450); }
     } else {
       const { st } = await page.evaluate(() => window.__challenge());
       void st;

@@ -1,13 +1,15 @@
 // The bubble arena: letters rise from the bottom, a cannon shoots an arrow at the
-// bubble the child touches. Nothing here can fail the child; a wrong bubble just
-// bonks, and after two bonks the right bubbles glow.
+// bubble the child touches. The child pops the letters of a word in order, so the
+// letter that counts changes after each hit. Nothing here can fail the child: a wrong
+// bubble just bonks, and after two bonks the bubbles that count glow.
 
 const rand = (a, b) => a + Math.random() * (b - a);
 
-export function startArena(el, { letter, pool, need }, cb) {
-  const COUNT = 7;
+// letters: the base letters to pop, in order. pool: other letters that float by.
+export function startArena(el, { letters, pool }, cb) {
+  const COUNT = 8;
   const LANES = 5;
-  let bubbles = [];
+  const bubbles = [];
   let hits = 0;
   let wrong = 0;
   let raf = 0;
@@ -15,23 +17,38 @@ export function startArena(el, { letter, pool, need }, cb) {
   let stopped = false;
   const timers = new Set();
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); };
+  const target = () => letters[Math.min(hits, letters.length - 1)];
 
   el.innerHTML = '<div class="shooter" aria-hidden="true"><div class="barrel"></div><div class="base"></div></div>';
-  const shooter = el.querySelector('.shooter');
   const barrel = el.querySelector('.barrel');
   const size = () => (bubbles[0] ? bubbles[0].el.offsetWidth : 76);
   const W = () => el.clientWidth;
   const H = () => el.clientHeight;
+  const isTarget = (b) => !b.dead && b.letter === target();
 
   function pickLetter() {
-    const targets = bubbles.filter((b) => b.letter === letter && !b.dead).length;
-    return targets < 2 || Math.random() < 0.35 ? letter : pool[Math.floor(Math.random() * pool.length)];
+    const wanted = bubbles.filter(isTarget).length;
+    if (wanted < 2 || Math.random() < 0.2) return target();
+    // Sometimes a later letter of the word, so the child sees what is coming.
+    const rest = letters.slice(hits + 1);
+    if (rest.length && Math.random() < 0.2) return rest[Math.floor(Math.random() * rest.length)];
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   let laneBag = [];
   function nextLane() {
     if (!laneBag.length) laneBag = [...Array(LANES).keys()].sort(() => Math.random() - 0.5);
     return laneBag.pop();
+  }
+
+  function setLetter(b, letter) {
+    b.letter = letter;
+    b.el.textContent = letter;
+    b.el.dataset.letter = letter;
+  }
+
+  function refreshHints() {
+    bubbles.forEach((b) => b.el.classList.toggle('hint', wrong >= 2 && isTarget(b) && !b.locked));
   }
 
   function place(b, y) {
@@ -41,27 +58,33 @@ export function startArena(el, { letter, pool, need }, cb) {
     const laneW = (W() - s - pad * 2) / (LANES - 1 || 1);
     b.x = Math.max(pad, Math.min(W() - s - pad, pad + b.lane * laneW + rand(-6, 6)));
     b.y = y;
-    b.speed = rand(34, 56);
+    b.speed = rand(36, 60);
     b.phase = rand(0, 6);
-    b.letter = pickLetter();
-    b.el.textContent = b.letter;
-    b.el.dataset.letter = b.letter;
-    b.el.classList.toggle('hint', wrong >= 2 && b.letter === letter);
     b.dead = false;
     b.locked = false;
-    b.el.className = `bub b${b.lane % 3}${wrong >= 2 && b.letter === letter ? ' hint' : ''}`;
+    b.el.className = `bub b${b.lane % 3}`;
+    setLetter(b, pickLetter());
+    refreshHints();
   }
 
   for (let i = 0; i < COUNT; i++) {
     const node = document.createElement('div');
     node.setAttribute('role', 'button');
     el.appendChild(node);
-    const b = { el: node };
-    bubbles.push(b);
+    bubbles.push({ el: node });
   }
-  bubbles.forEach((b, i) => place(b, 0));
+  bubbles.forEach((b) => place(b, 0));
   // Spread the starting bubbles over the arena so the child sees letters at once.
   bubbles.forEach((b, i) => { b.y = (H() - size()) * (i / COUNT) + rand(0, 30); });
+
+  // After a hit the next letter must be on screen soon: turn the lowest bubbles into it.
+  function ensureTarget() {
+    const t = target();
+    const have = bubbles.filter(isTarget).length;
+    if (have >= 2) return;
+    const candidates = bubbles.filter((b) => !b.locked && !b.dead && b.letter !== t).sort((a, c) => c.y - a.y);
+    for (const b of candidates.slice(0, 2 - have)) setLetter(b, t);
+  }
 
   function frame(t) {
     if (stopped) return;
@@ -102,7 +125,8 @@ export function startArena(el, { letter, pool, need }, cb) {
   async function fire(b) {
     if (b.locked || b.dead || stopped) return;
     b.locked = true;
-    const correct = b.letter === letter;
+    b.el.classList.remove('hint');
+    const correct = b.letter === target();
     cb.onTap(b.letter, correct);
     await shoot(b);
     if (stopped) return;
@@ -111,14 +135,15 @@ export function startArena(el, { letter, pool, need }, cb) {
       b.el.classList.add('pop');
       hits++;
       cb.onHit(hits);
-      if (hits >= need) { later(() => { stop(); cb.onDone(); }, 320); return; }
+      if (hits >= letters.length) { later(() => { stop(); cb.onDone(); }, 320); return; }
+      ensureTarget();
+      refreshHints();
       later(() => place(b, H() + rand(20, 120)), 260);
     } else {
       wrong++;
       cb.onWrong(wrong);
       b.el.classList.add('bonk');
-      if (wrong >= 2) bubbles.forEach((x) => { if (x.letter === letter) x.el.classList.add('hint'); });
-      later(() => { b.el.classList.remove('bonk'); b.locked = false; }, 450);
+      later(() => { b.el.classList.remove('bonk'); b.locked = false; refreshHints(); }, 450);
     }
   }
 

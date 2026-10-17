@@ -1,6 +1,6 @@
 // Every clip the app can play, in the order they should be made.
 // text: what is shown on the recording list. say: what a voice should speak.
-import { LETTERS, VOWELS, WORDS, WORD_NIKUD, SOUND_TEXT, LETTER_NAME } from './content.js';
+import { LETTERS, VOWELS, WORDS, WORD_NIKUD, SOUND_TEXT, LETTER_NAME, PART_CLIPS } from './content.js';
 import { makeToken } from './lab-logic.js';
 
 export const GROUPS = [
@@ -9,13 +9,14 @@ export const GROUPS = [
   { id: 'sounds', label: 'צלילים' },
   { id: 'words', label: 'מילים' },
   { id: 'syllables', label: 'הברות' },
+  { id: 'parts', label: 'חלקי מילים' },
 ];
 
 const prompt = (key, text, note = '') => ({ group: 'prompts', key, text, say: text, note });
 
 export const CLIPS = [
-  prompt('prompt/which-starts-with', 'איזו תמונה מתחילה בצליל?', 'לפני צליל האות'),
-  prompt('prompt/pop-letter', 'פוצצו את הבועות עם האות', 'לפני צליל האות'),
+  prompt('prompt/what-starts-with', 'מה מתחיל באות', 'לפני שם האות'),
+  prompt('prompt/pop-word', 'פוצצו את האותיות של המילה לפי הסדר', 'לפני המילה'),
   prompt('prompt/build-word', 'בנו את המילה', 'לפני המילה'),
   prompt('prompt/feed-monster', 'האכילו את המפלצת', 'לפני המילה'),
   prompt('prompt/read-word', 'קראו את המילה', 'לפני המילה'),
@@ -30,4 +31,5 @@ export const CLIPS = [
       const t = makeToken(l.ch, v.id);
       return { group: 'syllables', key: `syllable/${l.id}-${v.id}`, text: t, say: t, note: v.name };
     })),
+  ...[...PART_CLIPS].map(([text, key]) => ({ group: 'parts', key, text, say: text, note: 'חלק מילה למפלצת' })),
 ];
