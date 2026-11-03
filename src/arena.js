@@ -19,8 +19,11 @@ export function startArena(el, { letters, pool }, cb) {
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); };
   const target = () => letters[Math.min(hits, letters.length - 1)];
 
-  el.innerHTML = '<div class="shooter" aria-hidden="true"><div class="barrel"></div><div class="base"></div></div>';
+  el.innerHTML = '<div class="shooter" aria-hidden="true"><img class="base" src="assets/cannon-base.webp" alt="" draggable="false"><img class="barrel" src="assets/cannon-barrel.webp" alt="" draggable="false"></div>';
   const barrel = el.querySelector('.barrel');
+  const shooter = el.querySelector('.shooter');
+  // Where the arrow leaves the barrel, in arena pixels (the pivot is half way up the base image).
+  const muzzle = () => ({ x: W() / 2, y: H() - 6 - shooter.offsetHeight * (1 - 0.5156) });
   const size = () => (bubbles[0] ? bubbles[0].el.offsetWidth : 76);
   const W = () => el.clientWidth;
   const H = () => el.clientHeight;
@@ -107,7 +110,7 @@ export function startArena(el, { letters, pool }, cb) {
   raf = requestAnimationFrame(frame);
 
   function shoot(b) {
-    const sx = W() / 2, sy = H() - 34;
+    const { x: sx, y: sy } = muzzle();
     const dx = b.cx - sx, dy = b.cy - sy;
     const angle = Math.atan2(dx, -dy) * 180 / Math.PI;
     const dist = Math.hypot(dx, dy);

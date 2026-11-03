@@ -26,9 +26,11 @@ const freshState = () => ({ picked: null, placed: 0, used: [], hit: false, hits:
 let stopArena = null;
 
 // ---- shared pieces ----
+// Rendered 3D art (made in Blender). Emoji remain only for the word pictures.
+const art = (name, alt = '', cls = '') => `<img class="${cls}" src="assets/${name}.webp" alt="${alt}" draggable="false">`;
 const homeBtn = (visible = true) =>
-  `<button class="round" data-go="home" aria-label="הביתה" ${visible ? '' : 'style="visibility:hidden"'}>🏠</button>`;
-const starsPill = () => `<div class="pill" aria-label="כוכבים">⭐ ${progress.get().stars}</div>`;
+  `<button class="round" data-go="home" aria-label="הביתה" ${visible ? '' : 'style="visibility:hidden"'}>${art('house')}</button>`;
+const starsPill = () => `<div class="pill" aria-label="כוכבים">${art('star', '', 'starico')} ${progress.get().stars}</div>`;
 const ttsNote = () =>
   audio.state.ttsAvailable ? '' : `<div class="notice" role="status">🔇 אין קול עברי במכשיר. אפשר להמשיך לשחק.</div>`;
 
@@ -62,7 +64,7 @@ const draw = {
     const word = st.scaffold
       ? `<div class="chipsrow">${c.parts.map((p) => `<span class="chip big">${esc(p)}</span>`).join('')}</div>`
       : `<div class="bigword">${esc(c.text)}</div>`;
-    const face = session.answered ? c.word.emoji : '👾';
+    const face = session.answered ? c.word.emoji : art(st.listening ? 'monster-oh' : st.scaffold ? 'monster-sad' : 'monster-happy', '', 'monimg');
     const msg = st.listening ? 'המפלצת מקשיבה…' : (st.msg || 'לחצו על המיקרופון וקראו בקול');
     const mic = `<button class="act recbtn ${st.listening ? 'live' : ''}" data-listen ${st.listening || session.answered ? 'disabled' : ''}>${st.listening ? '⏺ מקשיבה…' : '🎤 קראו'}</button>
       <button class="act hear" data-hear aria-label="הקשיבו למילה" ${session.answered ? 'disabled' : ''}>🔊</button>`;
@@ -86,7 +88,7 @@ const draw = {
     const tiles = c.tray.map((p, i) => `<button class="tile wide ${session.st.picked === i ? 'retry' : ''}" data-tile="${i}" ${session.st.used.includes(i) ? 'hidden' : ''}>${esc(p)}</button>`).join('');
     return `<div class="prompt"><p class="sub">האכילו את המפלצת</p>
       <button class="pic" data-say aria-label="השמע שוב">${c.word.emoji}<small>🔊</small></button></div>
-      <div class="monster"><span class="mon ${session.st.hit ? 'munch' : ''}">👾</span><div class="eaten">${eaten || '<span class="hint">הברה אחרי הברה</span>'}</div></div>
+      <div class="monster"><span class="mon ${session.st.hit ? 'munch' : ''}">${art(session.st.picked != null ? 'monster-sad' : 'monster-happy', '', 'monimg')}</span><div class="eaten">${eaten || '<span class="hint">הברה אחרי הברה</span>'}</div></div>
       <div class="tray">${tiles}</div>`;
   },
 };
@@ -114,12 +116,12 @@ const screens = {
       <h1>עולם הקריאה</h1><p class="sub">בוא נשחק באותיות!</p>
       <div class="map">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M68 11 C 68 19, 30 19, 30 27 C 30 35, 68 35, 68 43 C 68 51, 30 51, 30 59 C 30 67, 68 67, 68 75 C 68 83, 30 83, 30 91" stroke="#fff" stroke-width="3" fill="none" stroke-dasharray="1.5 3" vector-effect="non-scaling-stroke" stroke-linecap="round"/></svg>
-        ${stn(68, 11, '#ffd966', '<span class="abg">אבג</span>', 'מה מתחיל באות…', 'starts', 'starts')}
-        ${stn(30, 27, '#9fe3d0', '🫧', 'בועות האותיות', 'bubbles', 'bubbles')}
-        ${stn(68, 43, '#ffb3a7', '🧩', 'בונים מילה', 'build', 'build')}
-        ${stn(30, 59, '#c9b8ff', '👾', 'מפלצת ההברות', 'syllable', 'syllable')}
-        ${stn(68, 75, '#b8e6c1', '🎤', 'המפלצת מקשיבה', 'read', 'read')}
-        ${stn(30, 91, '#ffa86b', '🐉', 'קרב הבוס', 'boss', 'boss')}
+        ${stn(68, 11, '#ffd966', art('icon-starts', 'אבג', 'ico'), 'מה מתחיל באות…', 'starts', 'starts')}
+        ${stn(30, 27, '#9fe3d0', art('icon-bubbles', '', 'ico'), 'בועות האותיות', 'bubbles', 'bubbles')}
+        ${stn(68, 43, '#ffb3a7', art('icon-build', '', 'ico'), 'בונים מילה', 'build', 'build')}
+        ${stn(30, 59, '#c9b8ff', art('monster-happy', '', 'ico'), 'מפלצת ההברות', 'syllable', 'syllable')}
+        ${stn(68, 75, '#b8e6c1', art('icon-read', '', 'ico'), 'המפלצת מקשיבה', 'read', 'read')}
+        ${stn(30, 91, '#ffa86b', art('dragon', '', 'ico'), 'קרב הבוס', 'boss', 'boss')}
       </div>
       <button class="labbtn" data-go="lab">🧪 מעבדת המילים</button>${ttsNote()}`;
   },
@@ -127,7 +129,7 @@ const screens = {
   consent() {
     return `
       <div class="top">${homeBtn()}${starsPill()}</div>
-      <div class="card consent"><div class="big">🎤</div><h1>המפלצת מקשיבה</h1>
+      <div class="card consent"><div class="big">${art('icon-read')}</div><h1>המפלצת מקשיבה</h1>
         <p>בכל תור הילד קורא מילה בקול והמפלצת מקשיבה. לשם כך האפליקציה משתמשת בזיהוי הדיבור של המכשיר.</p>
         <p>באייפון, השמע נשלח לאפל כדי להפוך אותו לטקסט. האפליקציה לא שומרת הקלטות ולא שולחת אותן לשום מקום אחר.</p>
         <p class="small">למבוגר: צריך שהכתבה תהיה מופעלת בהגדרות המכשיר (כללי ← מקלדת ← הפעלת הכתבה).</p></div>
@@ -140,7 +142,7 @@ const screens = {
     const boss = session.mode === 'boss';
     const left = session.cs.length - session.i - (session.answered ? 1 : 0);
     const head = boss
-      ? `<div class="bosshead"><span class="boss ${session.st.hit ? 'hit' : ''}">🐉</span><div class="pips" aria-label="חיי הבוס">${session.cs.map((_, k) => `<i class="${k < left ? 'on' : ''}"></i>`).join('')}</div></div>`
+      ? `<div class="bosshead"><span class="boss ${session.st.hit ? 'hit' : ''}">${art('dragon', '', 'bossimg')}</span><div class="pips" aria-label="חיי הבוס">${session.cs.map((_, k) => `<i class="${k < left ? 'on' : ''}"></i>`).join('')}</div></div>`
       : '';
     const dotsRow = boss ? '' : `<div class="progressdots" aria-hidden="true">${session.cs.map((_, k) => `<i class="${k < session.i || (k === session.i && session.answered) ? 'on' : ''}"></i>`).join('')}</div>`;
     return `
@@ -152,7 +154,7 @@ const screens = {
     const boss = session.mode === 'boss';
     return `
       <div class="top">${homeBtn()}${starsPill()}</div>
-      <div class="center"><div class="big">${boss ? '🏆' : '🌟'}</div><h1>${boss ? 'ניצחת את הבוס!' : 'כל הכבוד!'}</h1>
+      <div class="center"><div class="big">${art(boss ? 'trophy' : 'star')}</div><h1>${boss ? 'ניצחת את הבוס!' : 'כל הכבוד!'}</h1>
         <p class="sub">הרווחת ${session.stars} כוכבים הפעם</p></div>
       <div class="stack"><button class="next static" data-go="${session.mode}">${boss ? 'עוד קרב' : 'עוד סבב'} ▶</button>
         <button class="labbtn" data-go="home">🗺 חזרה למפה</button></div>`;

@@ -163,7 +163,7 @@ try {
     assert.equal(await page.locator(`[data-go=${mode}] .dots i.on`).count(), 1, `${mode} shows one finished round`);
   }
   await page.screenshot({ path: `${out}/home-progress.png` });
-  assert.equal(await page.locator('.abg').innerText(), 'אבג', 'first station shows Hebrew letters');
+  assert.equal(await page.locator('[data-go=starts] .ico').getAttribute('alt'), 'אבג', 'first station shows the Hebrew letter blocks');
 
   // --- read aloud: the monster listens ---
   await page.goto(base + '#home');
