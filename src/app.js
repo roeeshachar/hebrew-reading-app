@@ -29,6 +29,8 @@ let dragon = null, dragonHost = null, dragonRaf = 0;
 // ---- shared pieces ----
 // Rendered 3D art (made in Blender). Emoji remain only for the word pictures.
 const art = (name, alt = '', cls = '') => `<img class="${cls}" src="assets/${name}.webp" alt="${alt}" draggable="false">`;
+// A word's picture, rendered in Blender. It has no alt text on purpose: the word is the answer.
+const wordArt = (w, cls = 'wimg') => `<img class="${cls}" src="assets/words/${w.id}.webp" alt="" draggable="false">`;
 const homeBtn = (visible = true) =>
   `<button class="round" data-go="home" aria-label="הביתה" ${visible ? '' : 'style="visibility:hidden"'}>${art('house')}</button>`;
 const starsPill = () => `<div class="pill" aria-label="כוכבים">${art('star', '', 'starico')} ${progress.get().stars}</div>`;
@@ -46,7 +48,7 @@ const draw = {
       let cls = 'opt';
       if (session.answered) cls += w === c.target ? ' ok' : ' dim';
       else if (session.st.picked === i) cls += ' retry';
-      return `<button class="${cls}" data-opt="${i}" ${session.answered ? 'disabled' : ''}>${w.emoji}<span>${esc(w.he)}</span></button>`;
+      return `<button class="${cls}" data-opt="${i}" ${session.answered ? 'disabled' : ''}>${wordArt(w)}<span>${esc(w.he)}</span></button>`;
     }).join('');
     return `<div class="prompt"><p class="sub">מה מתחיל באות…</p>
       <button class="sound" data-say aria-label="השמע שוב">${c.letter}<small>🔊</small></button></div>
@@ -56,7 +58,7 @@ const draw = {
     const filled = session.answered ? c.slots.length : session.st.hits;
     const slots = c.slots.map((ch, k) => `<span class="slot sm ${k < filled ? 'full' : ''}">${k < filled ? ch : ''}</span>`).join('');
     return `<div class="bubprompt">
-      <button class="pic mini" data-say aria-label="השמע שוב">${c.word.emoji}<small>🔊</small></button>
+      <button class="pic mini" data-say aria-label="השמע שוב">${wordArt(c.word)}<small>🔊</small></button>
       <div class="bubtext"><p class="sub">פוצצו את האותיות של המילה לפי הסדר</p><div class="slots sm" aria-label="${c.slots.length} אותיות">${slots}</div></div></div>
       <div class="arena" id="arena"></div>`;
   },
@@ -65,7 +67,7 @@ const draw = {
     const word = st.scaffold
       ? `<div class="chipsrow">${c.parts.map((p) => `<span class="chip big">${esc(p)}</span>`).join('')}</div>`
       : `<div class="bigword">${esc(c.text)}</div>`;
-    const face = session.answered ? c.word.emoji : art(st.listening ? 'monster-oh' : st.scaffold ? 'monster-sad' : 'monster-happy', '', 'monimg');
+    const face = session.answered ? wordArt(c.word, 'wimg reveal') : art(st.listening ? 'monster-oh' : st.scaffold ? 'monster-sad' : 'monster-happy', '', 'monimg');
     const msg = st.listening ? 'המפלצת מקשיבה…' : (st.msg || 'לחצו על המיקרופון וקראו בקול');
     const mic = `<button class="act recbtn ${st.listening ? 'live' : ''}" data-listen ${st.listening || session.answered ? 'disabled' : ''}>${st.listening ? '⏺ מקשיבה…' : '🎤 קראו'}</button>
       <button class="act hear" data-hear aria-label="הקשיבו למילה" ${session.answered ? 'disabled' : ''}>🔊</button>`;
@@ -81,14 +83,14 @@ const draw = {
     const slots = c.slots.map((ch, i) => `<span class="slot ${i < session.st.placed ? 'full' : ''}">${i < session.st.placed ? ch : ''}</span>`).join('');
     const tiles = c.tray.map((ch, i) => `<button class="tile ${session.st.picked === i ? 'retry' : ''}" data-tile="${i}" ${session.st.used.includes(i) ? 'hidden' : ''}>${ch}</button>`).join('');
     return `<div class="prompt"><p class="sub">בנו את המילה</p>
-      <button class="pic" data-say aria-label="השמע שוב">${c.word.emoji}<small>🔊</small></button></div>
+      <button class="pic" data-say aria-label="השמע שוב">${wordArt(c.word)}<small>🔊</small></button></div>
       <div class="slots">${slots}</div><div class="tray">${tiles}</div>`;
   },
   syllable(c) {
     const eaten = c.parts.slice(0, session.st.placed).map((p) => `<span class="chip">${esc(p)}</span>`).join('');
     const tiles = c.tray.map((p, i) => `<button class="tile wide ${session.st.picked === i ? 'retry' : ''}" data-tile="${i}" ${session.st.used.includes(i) ? 'hidden' : ''}>${esc(p)}</button>`).join('');
     return `<div class="prompt"><p class="sub">האכילו את המפלצת</p>
-      <button class="pic" data-say aria-label="השמע שוב">${c.word.emoji}<small>🔊</small></button></div>
+      <button class="pic" data-say aria-label="השמע שוב">${wordArt(c.word)}<small>🔊</small></button></div>
       <div class="monster"><span class="mon ${session.st.hit ? 'munch' : ''}">${art(session.st.picked != null ? 'monster-sad' : 'monster-happy', '', 'monimg')}</span><div class="eaten">${eaten || '<span class="hint">הברה אחרי הברה</span>'}</div></div>
       <div class="tray">${tiles}</div>`;
   },
@@ -130,7 +132,7 @@ const screens = {
   consent() {
     return `
       <div class="top">${homeBtn()}${starsPill()}</div>
-      <div class="card consent"><div class="big">${art('icon-read')}</div><h1>המפלצת מקשיבה</h1>
+      <div class="card consent"><div class="bigart">${art('icon-read')}</div><h1>המפלצת מקשיבה</h1>
         <p>בכל תור הילד קורא מילה בקול והמפלצת מקשיבה. לשם כך האפליקציה משתמשת בזיהוי הדיבור של המכשיר.</p>
         <p>באייפון, השמע נשלח לאפל כדי להפוך אותו לטקסט. האפליקציה לא שומרת הקלטות ולא שולחת אותן לשום מקום אחר.</p>
         <p class="small">למבוגר: צריך שהכתבה תהיה מופעלת בהגדרות המכשיר (כללי ← מקלדת ← הפעלת הכתבה).</p></div>
@@ -155,7 +157,7 @@ const screens = {
     const boss = session.mode === 'boss';
     return `
       <div class="top">${homeBtn()}${starsPill()}</div>
-      <div class="center"><div class="big">${art(boss ? 'trophy' : 'star')}</div><h1>${boss ? 'ניצחת את הבוס!' : 'כל הכבוד!'}</h1>
+      <div class="center"><div class="bigart">${art(boss ? 'trophy' : 'star')}</div><h1>${boss ? 'ניצחת את הבוס!' : 'כל הכבוד!'}</h1>
         <p class="sub">הרווחת ${session.stars} כוכבים הפעם</p></div>
       <div class="stack"><button class="next static" data-go="${session.mode}">${boss ? 'עוד קרב' : 'עוד סבב'} ▶</button>
         <button class="labbtn" data-go="home">🗺 חזרה למפה</button></div>`;

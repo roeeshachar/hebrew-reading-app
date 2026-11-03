@@ -52,7 +52,7 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .next{position:absolute;inset-inline:16px;bottom:max(env(safe-area-inset-bottom),18px);height:64px;border-radius:22px;background:var(--coral);color:#fff;font-size:22px;font-weight:800;box-shadow:0 6px 0 #d4493a}
 .next.static{position:static;width:100%;flex:none}
 .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.big{font-size:0;line-height:0}
+.bigart{font-size:0;line-height:0}
 .stack{display:flex;flex-direction:column;gap:12px}
 /* lab */
 .seqbox{flex:none;background:#fff;border-radius:28px;min-height:120px;margin-top:6px;display:flex;align-items:center;justify-content:center;padding:10px;box-shadow:0 6px 0 var(--line);flex-wrap:wrap;gap:4px}
@@ -134,8 +134,8 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .card.consent{flex:1;margin-top:10px;background:#fff;border-radius:28px;padding:18px 20px;box-shadow:0 6px 0 var(--line);text-align:center;display:flex;flex-direction:column;justify-content:center;gap:6px;min-height:0;overflow:auto}
 .card.consent p{margin:4px 0;font-size:17px;line-height:1.5}
 .card.consent .small{font-size:14px;color:var(--mut)}
-.card.consent .big{font-size:64px}
-@media (max-height:720px){.stn .b{width:62px;height:62px;font-size:30px;border-radius:22px}.stn .n{font-size:12.5px}.abg{font-size:24px}.readcard .mon{font-size:56px}.bigword{font-size:60px}.card.consent .big{font-size:44px}.card.consent h1{font-size:24px}}
+
+@media (max-height:720px){.stn .b{width:62px;height:62px;font-size:30px;border-radius:22px}.stn .n{font-size:12.5px}.abg{font-size:24px}.readcard .mon{font-size:56px}.bigword{font-size:60px}.card.consent h1{font-size:24px}}
 /* bubbles: spelling a word */
 .pic.mini{width:84px;height:84px;font-size:46px;margin:0;flex:none}
 .pic.mini small{width:34px;height:34px;font-size:16px}
@@ -148,14 +148,14 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .pill{display:inline-flex;align-items:center;gap:6px}
 .pill .starico{width:24px;height:auto;display:block}
 .stn .b .ico{width:76%;height:76%;object-fit:contain;filter:drop-shadow(0 4px 3px rgba(20,40,80,.25))}
-.ico,.monimg,.bossimg,.big img{-webkit-user-drag:none;user-select:none}
+.ico,.monimg,.bossimg,.bigart img{-webkit-user-drag:none;user-select:none}
 .readcard .mon{display:block;line-height:0}
 .monimg{width:112px;height:auto;display:block;filter:drop-shadow(0 8px 6px rgba(40,30,100,.22))}
 .monster .monimg{width:84px}
 .mon.listening .monimg{filter:drop-shadow(0 0 12px var(--sun))}
 .bossimg{width:56px;height:auto;display:block}
-.big img{width:128px;height:auto;display:block;margin:0 auto;filter:drop-shadow(0 8px 6px rgba(20,40,80,.22))}
-.card.consent .big img{width:84px}
+.bigart img{width:128px;height:auto;display:block;margin:0 auto;filter:drop-shadow(0 8px 6px rgba(20,40,80,.22))}
+.card.consent .bigart img{width:84px}
 .arena .bub{position:absolute;left:0;top:0;width:var(--bs);height:var(--bs);border-radius:50%;display:grid;place-items:center;font-size:calc(var(--bs) * .66);font-weight:800;line-height:1;cursor:pointer;will-change:transform;user-select:none;z-index:2;background:center/contain no-repeat;filter:drop-shadow(0 8px 6px rgba(30,70,110,.2))}
 .arena .bub.b0{background-image:url(assets/bubble-blue.webp)}.arena .bub.b1{background-image:url(assets/bubble-pink.webp)}.arena .bub.b2{background-image:url(assets/bubble-green.webp)}
 .arena .bub.pop::after{content:'';position:absolute;inset:-18%;border-radius:50%;border:5px solid #fff;opacity:.9;animation:ring .3s ease-out forwards}
@@ -165,7 +165,7 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .shooter .barrel{transform-origin:50% 51.56%;transition:transform .12s}
 #app.boss .shooter{width:92px;margin-left:-46px}
 #app.boss .bossimg{width:56px}
-@media (max-height:720px){.stn .b .ico{width:78%;height:78%}.monimg{width:84px}.big img{width:96px}}
+@media (max-height:720px){.stn .b .ico{width:78%;height:78%}.monimg{width:84px}.bigart img{width:96px}}
 /* live 3D layer */
 .arena canvas.gl{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;display:block}
 .arena.gl-on .bub{background-image:none;filter:none;text-shadow:0 2px 0 rgba(255,255,255,.55)}
@@ -174,4 +174,10 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .bossgl{position:absolute;inset:0}
 .bossgl canvas.gl{width:100%;height:100%;display:block}
 .bosshead .boss .bossimg{width:100%}
+/* word pictures */
+.wimg{display:block;object-fit:contain;pointer-events:none;filter:drop-shadow(0 6px 4px rgba(30,60,100,.22))}
+.opt .wimg{position:absolute;left:12%;right:12%;top:8%;height:66%;width:76%}
+.pic .wimg{position:absolute;left:13%;top:13%;width:74%;height:74%}
+#app.boss .opt .wimg{top:6%;height:72%}
+.readcard .wimg.reveal{width:140px;height:112px;margin:0 auto}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}

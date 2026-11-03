@@ -82,7 +82,7 @@ try {
     if (round === 0) await page.screenshot({ path: `${out}/correct.png` });
     await page.click('[data-next]');
   }
-  await page.waitForSelector('.big');
+  await page.waitForSelector('.bigart');
   await page.screenshot({ path: `${out}/round-end.png` });
   assert.match(await page.locator('.pill').innerText(), /\d/);
 
@@ -166,7 +166,7 @@ try {
       if (k === 0 && mode === 'build') await page.screenshot({ path: `${out}/game-build-done.png` });
       await page.click('[data-next]');
     }
-    await page.waitForSelector('.big');
+    await page.waitForSelector('.bigart');
     if (mode === 'boss') await page.screenshot({ path: `${out}/boss-win.png` });
     await page.click('[data-go=home]');
     await page.waitForSelector('.map');
@@ -214,7 +214,7 @@ try {
     await page.waitForSelector('.banner.good');
     await page.click('[data-next]');
   }
-  await page.waitForSelector('.big');
+  await page.waitForSelector('.bigart');
   await page.click('[data-go=home]');
   await page.waitForSelector('.map');
   assert.equal(await page.locator('[data-go=read] .dots i.on').count(), 1, 'read shows one finished round');

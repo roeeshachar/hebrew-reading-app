@@ -184,3 +184,14 @@ test('every syllable the monster can serve has a clip', async () => {
   }
   assert.equal(new Set(PART_CLIPS.values()).size, PART_CLIPS.size, 'keys are unique');
 });
+
+test('every word has a picture, and the offline cache lists them all', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const files = new Set((await readdir(new URL('../assets/words/', import.meta.url))).map((f) => f.replace('.webp', '')));
+  const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+  for (const w of WORDS) {
+    assert.ok(files.has(w.id), `assets/words/${w.id}.webp is missing`);
+    assert.ok(sw.includes(`'${w.id}'`), `${w.id} is not in the service worker cache list`);
+  }
+  assert.equal(files.size, WORDS.length, 'no leftover pictures');
+});

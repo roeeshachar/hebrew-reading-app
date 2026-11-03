@@ -29,4 +29,13 @@ Then bump `VERSION` in `sw.js` so phones fetch the new pictures.
 ## Notes
 - Colours and shapes are at the top of each scene function. Characters are simple shapes on purpose;
   an artist's model can replace them, as long as the file names stay the same.
-- The word pictures in the games are still emoji (41 of them). Rendering them is the next art job.
+
+## The word pictures
+The 41 pictures in `assets/words/` come from `tools/blender/words/` (one function per word, in `words_a.py`,
+`words_b.py`, `words_c.py`, with shared helpers in `words_lib.py`).
+```
+python tools/blender/words/render_words.py -- renders/words              # all of them (about 5 minutes)
+python tools/blender/words/render_words.py -- renders/words kelev etz    # only some, by word id
+python tools/blender/pack_words.py renders/words assets/words
+```
+A new word needs its function, a picture in `assets/words/`, and its id in the list in `sw.js`. A test checks all three.
