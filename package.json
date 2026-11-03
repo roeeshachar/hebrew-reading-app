@@ -11,9 +11,11 @@
     "recording-list": "node tools/recording-list.mjs",
     "audio-manifest": "node tools/audio-manifest.mjs",
     "generate-audio": "node tools/generate-audio.mjs",
-    "audio-manifest": "node tools/audio-manifest.mjs"
+    "build:3d": "node tools/three/build.mjs"
   },
   "devDependencies": {
-    "playwright": "^1.64.0"
+    "esbuild": "^0.28.2",
+    "playwright": "^1.64.0",
+    "three": "^0.160.0"
   }
 }

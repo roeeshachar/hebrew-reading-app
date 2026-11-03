@@ -93,7 +93,7 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .chip{background:var(--mint);color:#fff;border-radius:16px;padding:4px 14px;font-size:34px;font-weight:700}
 .hint{color:#7088b3;font-size:17px}
 .bosshead{display:flex;align-items:center;gap:14px;flex:none;margin-top:2px}
-.boss{font-size:46px;line-height:1}.boss.hit{animation:wob .4s}
+.bosshead .boss.hit{animation:wob .4s}
 .pips{display:flex;gap:6px;flex:1}
 .pips i{flex:1;height:16px;border-radius:8px;background:#fff;border:2px solid var(--ink)}
 .pips i.on{background:var(--coral);border-color:var(--coral)}
@@ -153,7 +153,7 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .monimg{width:112px;height:auto;display:block;filter:drop-shadow(0 8px 6px rgba(40,30,100,.22))}
 .monster .monimg{width:84px}
 .mon.listening .monimg{filter:drop-shadow(0 0 12px var(--sun))}
-.boss{line-height:0}.bossimg{width:56px;height:auto;display:block}
+.bossimg{width:56px;height:auto;display:block}
 .big img{width:128px;height:auto;display:block;margin:0 auto;filter:drop-shadow(0 8px 6px rgba(20,40,80,.22))}
 .card.consent .big img{width:84px}
 .arena .bub{position:absolute;left:0;top:0;width:var(--bs);height:var(--bs);border-radius:50%;display:grid;place-items:center;font-size:calc(var(--bs) * .66);font-weight:800;line-height:1;cursor:pointer;will-change:transform;user-select:none;z-index:2;background:center/contain no-repeat;filter:drop-shadow(0 8px 6px rgba(30,70,110,.2))}
@@ -164,6 +164,14 @@ h1{font-size:30px;margin:6px 0 2px;font-weight:800}
 .shooter img{position:absolute;inset:0;width:100%;height:100%}
 .shooter .barrel{transform-origin:50% 51.56%;transition:transform .12s}
 #app.boss .shooter{width:92px;margin-left:-46px}
-#app.boss .bossimg{width:46px}
+#app.boss .bossimg{width:56px}
 @media (max-height:720px){.stn .b .ico{width:78%;height:78%}.monimg{width:84px}.big img{width:96px}}
+/* live 3D layer */
+.arena canvas.gl{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;display:block}
+.arena.gl-on .bub{background-image:none;filter:none;text-shadow:0 2px 0 rgba(255,255,255,.55)}
+.arena.gl-on .shooter{opacity:0}
+.bosshead .boss{width:80px;height:80px;flex:none;position:relative;line-height:0}
+.bossgl{position:absolute;inset:0}
+.bossgl canvas.gl{width:100%;height:100%;display:block}
+.bosshead .boss .bossimg{width:100%}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}

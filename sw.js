@@ -1,10 +1,10 @@
 // Offline shell. Bump VERSION when files change so phones pick up the new copy.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const ART = ['bubble-blue','bubble-pink','bubble-green','cannon-base','cannon-barrel','monster-happy','monster-oh','monster-sad','dragon','icon-starts','icon-bubbles','icon-build','icon-read','star','house','trophy'];
 const SHELL = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'src/app.js', 'src/audio.js', 'src/content.js', 'src/lab-logic.js', 'src/rounds.js', 'src/progress.js', 'src/challenges.js', 'src/arena.js', 'src/match.js', 'src/listen.js',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
+  'vendor/gl3d.js', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png',
   ...ART.map((n) => `assets/${n}.webp`),
   ...[400, 700, 800].flatMap((w) => [`fonts/rubik-hebrew-${w}-normal.woff2`, `fonts/rubik-latin-${w}-normal.woff2`]),
 ];

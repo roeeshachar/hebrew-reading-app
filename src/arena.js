@@ -11,6 +11,7 @@ export function startArena(el, { letters, pool }, cb) {
   const LANES = 5;
   const bubbles = [];
   let hits = 0;
+  let inflight = 0; // correct arrows still flying: a quick second tap must count for the next letter
   let wrong = 0;
   let raf = 0;
   let last = 0;
@@ -18,6 +19,7 @@ export function startArena(el, { letters, pool }, cb) {
   const timers = new Set();
   const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); };
   const target = () => letters[Math.min(hits, letters.length - 1)];
+  const nextShot = () => letters[Math.min(hits + inflight, letters.length - 1)];
 
   el.innerHTML = '<div class="shooter" aria-hidden="true"><img class="base" src="assets/cannon-base.webp" alt="" draggable="false"><img class="barrel" src="assets/cannon-barrel.webp" alt="" draggable="false"></div>';
   const barrel = el.querySelector('.barrel');
@@ -28,6 +30,14 @@ export function startArena(el, { letters, pool }, cb) {
   const W = () => el.clientWidth;
   const H = () => el.clientHeight;
   const isTarget = (b) => !b.dead && b.letter === target();
+
+  // The 3D layer loads in the background. Until it is ready, and if the phone has no WebGL,
+  // the bubbles and the cannon are the flat rendered pictures and the game plays the same.
+  let gl = null;
+  import('../vendor/gl3d.js').then((m) => {
+    if (stopped) return;
+    try { gl = m.createArena(el); el.classList.add('gl-on'); } catch { gl = null; }
+  }).catch(() => {});
 
   function pickLetter() {
     const wanted = bubbles.filter(isTarget).length;
@@ -80,13 +90,32 @@ export function startArena(el, { letters, pool }, cb) {
   // Spread the starting bubbles over the arena so the child sees letters at once.
   bubbles.forEach((b, i) => { b.y = (H() - size()) * (i / COUNT) + rand(0, 30); });
 
-  // After a hit the next letter must be on screen soon: turn the lowest bubbles into it.
+  // After a hit the next letter must be on screen soon: turn bubbles that are already in
+  // view (the ones nearest the middle) into it, so the child is not left waiting for them to rise.
   function ensureTarget() {
     const t = target();
-    const have = bubbles.filter(isTarget).length;
+    const have = bubbles.filter((b) => isTarget(b) && b.y < H() * 0.7).length;
     if (have >= 2) return;
-    const candidates = bubbles.filter((b) => !b.locked && !b.dead && b.letter !== t).sort((a, c) => c.y - a.y);
-    for (const b of candidates.slice(0, 2 - have)) setLetter(b, t);
+    const mid = H() * 0.4;
+    const candidates = bubbles
+      .filter((b) => !b.locked && !b.dead && b.letter !== t && b.y > -size() * 0.2 && b.y < H() * 0.7)
+      .sort((x, y) => Math.abs(x.y - mid) - Math.abs(y.y - mid));
+    for (const b of candidates.slice(0, 2 - have)) { setLetter(b, t); b.el.classList.remove('bonk'); }
+    refreshHints();
+  }
+
+  // The letter that counts must always be somewhere on screen. If none is in view, turn a bubble
+  // near the middle into it (rare: it only happens when the right ones are all still below).
+  let lastCheck = 0;
+  function keepTargetInView(now) {
+    if (now - lastCheck < 1200) return;
+    lastCheck = now;
+    const inView = (b) => b.y > -size() * 0.3 && b.y < H() - size() * 1.2;
+    if (bubbles.some((b) => isTarget(b) && inView(b))) return;
+    const mid = H() * 0.35;
+    const pick = bubbles.filter((b) => !b.locked && !b.dead && b.letter !== target() && inView(b))
+      .sort((x, y) => Math.abs(x.y - mid) - Math.abs(y.y - mid))[0];
+    if (pick) { setLetter(pick, target()); refreshHints(); }
   }
 
   function frame(t) {
@@ -105,6 +134,16 @@ export function startArena(el, { letters, pool }, cb) {
       b.cy = b.y + s / 2;
       b.el.style.transform = `translate(${b.x + sway}px, ${b.y}px)`;
     }
+    keepTargetInView(t);
+    if (gl) {
+      const m = muzzle();
+      gl.setCannon(m.x, m.y, shooter.offsetWidth / 2.8);
+      gl.setBubbles(bubbles.map((b) => ({
+        x: b.cx, y: b.cy, r: s / 2, color: b.lane, dead: b.dead,
+        wob: b.el.classList.contains('bonk'), glow: b.el.classList.contains('hint'),
+      })), t / 1000);
+      gl.render(dt);
+    }
     raf = requestAnimationFrame(frame);
   }
   raf = requestAnimationFrame(frame);
@@ -115,6 +154,10 @@ export function startArena(el, { letters, pool }, cb) {
     const angle = Math.atan2(dx, -dy) * 180 / Math.PI;
     const dist = Math.hypot(dx, dy);
     barrel.style.transform = `rotate(${angle}deg)`;
+    if (gl) {
+      gl.aim(angle);
+      return gl.arrow(sx, sy, b.cx, b.cy, Math.max(140, Math.min(320, dist * 0.55)));
+    }
     const arrow = document.createElement('div');
     arrow.className = 'arrow';
     el.appendChild(arrow);
@@ -126,16 +169,20 @@ export function startArena(el, { letters, pool }, cb) {
   }
 
   async function fire(b) {
-    if (b.locked || b.dead || stopped) return;
+    if (b.locked || b.dead || stopped || hits + inflight >= letters.length) return;
     b.locked = true;
     b.el.classList.remove('hint');
-    const correct = b.letter === target();
+    b.el.classList.add('shot'); // in flight: not a target any more until it lands
+    const correct = b.letter === nextShot();
+    if (correct) inflight++;
     cb.onTap(b.letter, correct);
     await shoot(b);
     if (stopped) return;
     if (correct) {
+      inflight--;
       b.dead = true;
       b.el.classList.add('pop');
+      if (gl) gl.burst(b.cx, b.cy, b.lane);
       hits++;
       cb.onHit(hits);
       if (hits >= letters.length) { later(() => { stop(); cb.onDone(); }, 320); return; }
@@ -146,7 +193,7 @@ export function startArena(el, { letters, pool }, cb) {
       wrong++;
       cb.onWrong(wrong);
       b.el.classList.add('bonk');
-      later(() => { b.el.classList.remove('bonk'); b.locked = false; refreshHints(); }, 450);
+      later(() => { b.el.classList.remove('bonk', 'shot'); b.locked = false; refreshHints(); }, 450);
     }
   }
 
@@ -164,6 +211,7 @@ export function startArena(el, { letters, pool }, cb) {
     cancelAnimationFrame(raf);
     timers.forEach(clearTimeout);
     el.removeEventListener('pointerdown', onDown);
+    if (gl) { gl.dispose(); gl = null; }
   }
   return stop;
 }

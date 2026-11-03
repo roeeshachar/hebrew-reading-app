@@ -21,6 +21,8 @@ try {
   // The repository now holds real recordings; the test wants the fake voice so it can read what is said.
   await ctx.route('**/audio/manifest.json', (r) => r.fulfill({ json: { clips: [] } }));
   const page = await ctx.newPage();
+  // This page plays with the flat pictures; software WebGL in a test browser is too slow to chase bubbles.
+  await page.route('**/vendor/gl3d.js', (r) => r.abort());
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   // Spoken text is recorded instead of played, so the test can check what would be said.
@@ -102,7 +104,7 @@ try {
           const arena = document.querySelector('#arena').getBoundingClientRect();
           const b = [...document.querySelectorAll('#arena .bub')].find((n) => {
             const r = n.getBoundingClientRect();
-            return !n.classList.contains('pop') && !n.classList.contains('bonk')
+            return !n.classList.contains('pop') && !n.classList.contains('bonk') && !n.classList.contains('shot')
               && (accept.is ? n.dataset.letter === accept.is : n.dataset.letter !== accept.not)
               && r.top > arena.top + 8 && r.bottom < arena.bottom - 90 && r.left > arena.left && r.right < arena.right
               && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === n; // not hidden behind another bubble
@@ -110,7 +112,15 @@ try {
           if (!b) return null;
           const r = b.getBoundingClientRect();
           return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-        }, accept, { timeout: 8000 });
+        }, accept, { timeout: 12000 }).catch(async (err) => {
+          const info = await page.evaluate(() => {
+            const a = document.querySelector('#arena').getBoundingClientRect();
+            return { hits: window.__challenge().st.hits, letters: window.__challenge().c.letters, arena: [a.x, a.y, a.width, a.height].map(Math.round),
+              bubs: [...document.querySelectorAll('#arena .bub')].map((n) => { const q = n.getBoundingClientRect(); return [n.dataset.letter, Math.round(q.x), Math.round(q.y), n.className]; }) };
+          });
+          console.log('TAP FAIL', JSON.stringify(accept), JSON.stringify(info));
+          throw err;
+        });
         const { x, y } = await p.jsonValue();
         await page.mouse.click(x, y);
       };
@@ -288,6 +298,38 @@ try {
   await p2.addInitScript(() => { window.speechSynthesis.getVoices = () => [{ lang: 'en-US' }]; });
   await p2.goto(base);
   await p2.waitForSelector('.notice');
+
+  // --- the live 3D layer: it appears, follows the bubbles and can be shot at ---
+  const p5 = await ctx.newPage();
+  await p5.goto(base + '#bubbles');
+  await p5.waitForSelector('.arena.gl-on', { timeout: 20000 });
+  assert.equal(await p5.locator('.arena canvas.gl').count(), 1, 'one 3D canvas in the arena');
+  const gl = await p5.evaluate(() => { const c = document.querySelector('.arena canvas.gl'); return { w: c.clientWidth, h: c.clientHeight }; });
+  assert.ok(gl.w > 200 && gl.h > 200, 'the canvas covers the arena');
+  await p5.waitForTimeout(1500);
+  await p5.screenshot({ path: `${out}/gl-bubbles.png` });
+  await p5.close();
+  const p6 = await ctx.newPage();
+  await p6.goto(base + '#boss');
+  await p6.waitForSelector('.bossgl canvas.gl', { timeout: 20000 });
+  await p6.waitForTimeout(1500);
+  await p6.screenshot({ path: `${out}/gl-boss.png` });
+  await p6.close();
+
+  // --- a phone without WebGL still plays the bubbles with the flat pictures ---
+  const p4 = await ctx.newPage();
+  await p4.addInitScript(() => {
+    const orig = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...r) { return /webgl/i.test(type) ? null : orig.call(this, type, ...r); };
+  });
+  await ctx.route('**/audio/manifest.json', (r) => r.fulfill({ json: { clips: [] } }));
+  await p4.goto(base + '#bubbles');
+  await p4.waitForSelector('#arena .bub');
+  await p4.waitForTimeout(1500);
+  assert.equal(await p4.locator('.arena.gl-on').count(), 0, 'no 3D layer without WebGL');
+  assert.ok(await p4.locator('#arena .bub').count() >= 6, 'flat bubbles are there');
+  await p4.screenshot({ path: `${out}/bubbles-flat.png` });
+  await p4.close();
 
   // --- a browser with no speech recognition goes straight to parent mode ---
   const p3 = await ctx.newPage();

@@ -24,6 +24,7 @@ let lab = { seq: [], pending: null };
 let session = null;
 const freshState = () => ({ picked: null, placed: 0, used: [], hit: false, hits: 0, listening: false, scaffold: false, parent: false, silent: 0, msg: '' });
 let stopArena = null;
+let dragon = null, dragonHost = null, dragonRaf = 0;
 
 // ---- shared pieces ----
 // Rendered 3D art (made in Blender). Emoji remain only for the word pictures.
@@ -201,12 +202,35 @@ function render() {
   app.innerHTML = fn();
   app.dataset.screen = name;
   app.classList.toggle('boss', name === 'boss');
+  if (name === 'boss') mountDragon(); else unmountDragon();
   if (MODES.includes(name)) {
     const c = session.cs[session.i];
     if (c.type === 'bubbles' && !session.answered) mountArena(c);
     if (!session.answered && !session.spoken) { session.spoken = true; say(); }
   }
 }
+// The boss header is redrawn after every answer, so the dragon's canvas is made once and
+// moved back into the new header each time (a flat picture stands in until it is ready).
+function mountDragon() {
+  const slot = document.querySelector('.bosshead .boss');
+  if (!slot) return;
+  if (dragon) { slot.replaceChildren(dragonHost); return; }
+  import('../vendor/gl3d.js').then((m) => {
+    const where = document.querySelector('.bosshead .boss');
+    if (dragon || !where || current() !== 'boss') return;
+    dragonHost = document.createElement('div'); dragonHost.className = 'bossgl';
+    where.replaceChildren(dragonHost);
+    try { dragon = m.createDragon(dragonHost); } catch { dragonHost = null; return; }
+    let last = performance.now();
+    const loop = (now) => { if (!dragon) return; dragon.frame(now / 1000, Math.min(0.05, (now - last) / 1000)); last = now; dragonRaf = requestAnimationFrame(loop); };
+    dragonRaf = requestAnimationFrame(loop);
+  }).catch(() => {});
+}
+function unmountDragon() {
+  if (!dragon) return;
+  cancelAnimationFrame(dragonRaf); dragon.dispose(); dragon = null; dragonHost = null;
+}
+
 function mountArena(c) {
   stopArena = startArena(document.getElementById('arena'), { letters: c.letters, pool: c.pool }, {
     onTap: (l) => audio.play([nameClip(l)]),
@@ -245,6 +269,7 @@ function say() {
 function finishChallenge(lead = [], queue = false) {
   session.answered = true;
   session.st.hit = true;
+  if (dragon && session.mode === 'boss') dragon.hit();
   const c0 = session.cs[session.i];
   if (session.misses < (c0.type === 'bubbles' ? 3 : 2)) { session.stars++; progress.addStar(); }
   render();
@@ -333,6 +358,7 @@ function next() {
   if (session.i + 1 >= session.cs.length) {
     session.done = true; progress.addRound(session.mode);
     audio.play([['prompt/well-done', 'כל הכבוד']]);
+    unmountDragon();
     app.innerHTML = screens.roundEnd(); app.dataset.screen = 'roundEnd';
     return;
   }
