@@ -156,7 +156,7 @@ export function startArena(el, { letters, pool }, cb) {
     barrel.style.transform = `rotate(${angle}deg)`;
     if (gl) {
       gl.aim(angle);
-      return gl.arrow(sx, sy, b.cx, b.cy, Math.max(140, Math.min(320, dist * 0.55)));
+      return gl.arrow(sx, sy, b.cx, b.cy, Math.max(110, Math.min(240, dist * 0.42)));
     }
     const arrow = document.createElement('div');
     arrow.className = 'arrow';
@@ -164,7 +164,7 @@ export function startArena(el, { letters, pool }, cb) {
     const a = arrow.animate([
       { transform: `translate(${sx - 4}px, ${sy - 46}px) rotate(${angle}deg)`, transformOrigin: '4px 46px' },
       { transform: `translate(${b.cx - 4}px, ${b.cy - 46}px) rotate(${angle}deg)`, transformOrigin: '4px 46px' },
-    ], { duration: Math.max(140, Math.min(320, dist * 0.55)), easing: 'ease-in' });
+    ], { duration: Math.max(110, Math.min(240, dist * 0.42)), easing: 'ease-in' });
     return new Promise((resolve) => { a.onfinish = () => { arrow.remove(); resolve(); }; a.oncancel = resolve; });
   }
 

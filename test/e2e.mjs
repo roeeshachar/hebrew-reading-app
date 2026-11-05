@@ -352,6 +352,31 @@ try {
   assert.equal(await p7.evaluate(() => window.__audioState.lastBlend), null, 'no blending for a known word');
   await p7.close();
 
+  // --- the service worker saves the clips, answers byte ranges like Safari asks, and works offline ---
+  const swctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'allow' });
+  const sp = await swctx.newPage();
+  await sp.goto(base);
+  await sp.waitForFunction(() => navigator.serviceWorker.controller || navigator.serviceWorker.ready.then(() => true), null, { timeout: 15000 });
+  await sp.evaluate(async () => { const reg = await navigator.serviceWorker.ready; reg.active.postMessage('save-clips'); });
+  const total = await sp.evaluate(async () => (await (await fetch('audio/manifest.json')).json()).clips.length);
+  await sp.waitForFunction(async (n) => (await (await caches.open('voice-clips')).keys()).length >= n, total, { timeout: 60000 });
+  await sp.reload(); // now controlled by the service worker
+  await sp.waitForFunction(() => navigator.serviceWorker.controller);
+  await swctx.setOffline(true);
+  const probe = await sp.evaluate(async () => {
+    const whole = await fetch('audio/letter-name/alef.mp3');
+    const part = await fetch('audio/letter-name/alef.mp3', { headers: { Range: 'bytes=0-9' } });
+    const man = await fetch('audio/manifest.json');
+    return { whole: whole.status, wholeBytes: (await whole.arrayBuffer()).byteLength, part: part.status, partBytes: (await part.arrayBuffer()).byteLength, range: part.headers.get('Content-Range'), manifest: man.status };
+  });
+  assert.equal(probe.whole, 200, 'a saved clip plays offline');
+  assert.equal(probe.part, 206, 'a byte range is answered with 206, as Safari needs');
+  assert.equal(probe.partBytes, 10);
+  assert.match(probe.range, /^bytes 0-9\/\d+$/);
+  assert.equal(probe.manifest, 200, 'the clip list is kept for offline use');
+  await swctx.setOffline(false);
+  await swctx.close();
+
   // --- a phone without WebGL still plays the bubbles with the flat pictures ---
   const p4 = await ctx.newPage();
   await p4.addInitScript(() => {

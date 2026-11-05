@@ -5,11 +5,19 @@
 import { trimBounds, blendPlan } from './blend.js';
 
 let clips = new Set();
+let initDone = Promise.resolve();
 let current = null;
 let runId = 0;
-export const state = { ttsAvailable: true, unlocked: false, lastBlend: null };
+// spoken: texts the device's own voice had to say (should stay empty once every clip exists).
+// latency: milliseconds from asking for a clip to hearing it start.
+export const state = { ttsAvailable: true, unlocked: false, lastBlend: null, spoken: [], latency: [] };
 
-export async function init() {
+export function init() {
+  initDone = loadManifest();
+  return initDone;
+}
+
+async function loadManifest() {
   try {
     const res = await fetch('audio/manifest.json', { cache: 'no-cache' });
     if (res.ok) clips = new Set((await res.json()).clips || []);
@@ -45,6 +53,8 @@ export function stop() {
 function playClip(key) {
   return new Promise((resolve, reject) => {
     const a = new Audio(`audio/${key}.mp3`);
+    const t0 = performance.now();
+    a.onplaying = () => { state.latency.push(Math.round(performance.now() - t0)); if (state.latency.length > 300) state.latency.shift(); };
     current = a;
     a.onended = () => resolve();
     a.onerror = () => reject(new Error('clip failed'));
@@ -53,6 +63,8 @@ function playClip(key) {
 }
 
 function speak(text) {
+  state.spoken.push(text);
+  if (state.spoken.length > 300) state.spoken.shift();
   return new Promise((resolve) => {
     try {
       const u = new SpeechSynthesisUtterance(text);
@@ -76,11 +88,14 @@ export function play(items, { queue = false } = {}) {
   if (!queue) stop();
   const id = runId;
   const before = queue ? running : Promise.resolve();
-  const run = before.then(async () => {
+  const run = Promise.all([before, initDone]).then(async () => {
     for (const [key, text] of items) {
       if (id !== runId) return;
       if (key && clips.has(key)) {
-        try { await playClip(key); continue; } catch { /* use TTS below */ }
+        try { await playClip(key); continue; } catch { /* the clip could not play */ }
+        // A call that was cancelled while its clip was starting must stay silent. Without this check
+        // the device voice would say the old line a moment after the child had moved on.
+        if (id !== runId) return;
       }
       if (text) await speak(text);
     }

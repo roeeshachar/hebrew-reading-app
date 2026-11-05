@@ -439,5 +439,8 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (hadController && !reloaded) { reloaded = true; location.reload(); }
   });
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then((reg) => {
+    // Once the app is up, have the phone save the voice clips so they play instantly and offline.
+    setTimeout(() => reg.active && reg.active.postMessage('save-clips'), 4000);
+  }).catch(() => {});
 }

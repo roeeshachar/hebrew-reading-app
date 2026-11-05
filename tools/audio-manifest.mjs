@@ -1,5 +1,6 @@
 // Scans audio/ for .mp3 files and lists them in audio/manifest.json.
-import { readdir, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,5 +15,9 @@ async function walk(d) {
   return out;
 }
 const clips = (await walk(dir)).sort();
-await writeFile(join(dir, 'manifest.json'), JSON.stringify({ clips }, null, 2) + '\n');
+// The version changes whenever a clip is added, replaced or removed, so phones refresh their saved copies.
+const hash = createHash('sha1');
+for (const c of clips) { hash.update(c); hash.update(await readFile(join(dir, c + '.mp3'))); }
+const version = hash.digest('hex').slice(0, 12);
+await writeFile(join(dir, 'manifest.json'), JSON.stringify({ version, clips }, null, 2) + '\n');
 console.log(`audio/manifest.json: ${clips.length} clips`);
