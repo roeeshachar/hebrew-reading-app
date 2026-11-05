@@ -1,4 +1,4 @@
-import { LETTERS, LETTER_ID, VOWELS, LETTER_NAME, SOUND_TEXT, PART_CLIPS, wordIdByNikud } from './content.js';
+import { LETTERS, LETTER_ID, VOWELS, LETTER_NAME, SOUND_TEXT, PART_CLIPS, WORD_NIKUD, wordIdByNikud, wordClusters } from './content.js';
 import { MAX_TOKENS, makeToken, addToken, removeLast, applyVowel, display } from './lab-logic.js';
 import { buildSession, buildAccepts, syllableAccepts, MODES } from './challenges.js';
 import * as audio from './audio.js';
@@ -14,6 +14,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ("d", for matching and spelling). The text is the fallback for the device voice.
 const nameClip = (l) => [`letter-name/${LETTER_ID[l]}`, LETTER_NAME[l]];
 const soundClip = (l) => [`letter-sound/${LETTER_ID[l]}`, SOUND_TEXT[l]];
+// What a slot or a banner shows for a word: the letters with their nikud, so the child sees how
+// the word is read. (Flip SHOW_NIKUD to false to go back to plain letters.)
+const SHOW_NIKUD = true;
+const slotText = (word, k) => (SHOW_NIKUD ? wordClusters(word.id)[k] : null) || [...word.he][k];
+const wordText = (word) => (SHOW_NIKUD ? WORD_NIKUD[word.id] : word.he);
 const partClip = (p) => [PART_CLIPS.get(p), p]; // a syllable the monster eats
 
 // ---- state ----
@@ -56,7 +61,7 @@ const draw = {
   },
   bubbles(c) {
     const filled = session.answered ? c.slots.length : session.st.hits;
-    const slots = c.slots.map((ch, k) => `<span class="slot sm ${k < filled ? 'full' : ''}">${k < filled ? ch : ''}</span>`).join('');
+    const slots = c.slots.map((ch, k) => `<span class="slot sm ${k < filled ? 'full' : ''}">${k < filled ? slotText(c.word, k) : ''}</span>`).join('');
     return `<div class="bubprompt">
       <button class="pic mini" data-say aria-label="השמע שוב">${wordArt(c.word)}<small>🔊</small></button>
       <div class="bubtext"><p class="sub">פוצצו את האותיות של המילה לפי הסדר</p><div class="slots sm" aria-label="${c.slots.length} אותיות">${slots}</div></div></div>
@@ -80,7 +85,7 @@ const draw = {
       ${st.parent && !session.answered ? '<p class="tip">מצב הורה: אין זיהוי דיבור זמין, אז הורה מאשר את הקריאה.</p>' : ''}`;
   },
   build(c) {
-    const slots = c.slots.map((ch, i) => `<span class="slot ${i < session.st.placed ? 'full' : ''}">${i < session.st.placed ? ch : ''}</span>`).join('');
+    const slots = c.slots.map((ch, i) => `<span class="slot ${i < session.st.placed ? 'full' : ''}">${i < session.st.placed ? slotText(c.word, i) : ''}</span>`).join('');
     const tiles = c.tray.map((ch, i) => `<button class="tile ${session.st.picked === i ? 'retry' : ''}" data-tile="${i}" ${session.st.used.includes(i) ? 'hidden' : ''}>${ch}</button>`).join('');
     return `<div class="prompt"><p class="sub">בנו את המילה</p>
       <button class="pic" data-say aria-label="השמע שוב">${wordArt(c.word)}<small>🔊</small></button></div>
@@ -98,8 +103,8 @@ const draw = {
 
 function footer(c) {
   if (session.answered) {
-    const text = c.type === 'starts' ? `${c.target.he}! ${c.target.he} מתחיל ב־${c.letter}`
-      : `${c.word.he}!`;
+    const text = c.type === 'starts' ? `${wordText(c.target)}! ${wordText(c.target)} מתחיל ב־${c.letter}`
+      : `${wordText(c.word)}!`;
     return bannerGood(text);
   }
   return session.st.picked != null ? bannerTry : '';
@@ -240,7 +245,7 @@ function mountArena(c) {
       session.st.hits = n;
       document.querySelectorAll('.slots.sm .slot').forEach((slot, k) => {
         slot.classList.toggle('full', k < n);
-        slot.textContent = k < n ? c.slots[k] : '';
+        slot.textContent = k < n ? slotText(c.word, k) : '';
       });
     },
     onWrong: () => { session.misses++; },
@@ -337,7 +342,7 @@ function tapTile(i) { // build and syllable
   const c = session.cs[session.i], st = session.st;
   const piece = c.tray[i];
   const ok = c.type === 'build' ? buildAccepts(c, st.placed, piece) : syllableAccepts(c, st.placed, piece);
-  const say1 = c.type === 'build' ? [soundClip(piece)] : [partClip(piece)];
+  const say1 = c.type === 'build' ? [nameClip(piece)] : [partClip(piece)];
   if (!ok) {
     if (session.misses + 1 >= 2) { // show the right tile instead of failing
       session.misses++;
@@ -352,7 +357,7 @@ function placeTile(i, c, st) {
   st.used.push(i); st.placed++; st.picked = null;
   const total = c.type === 'build' ? c.slots.length : c.parts.length;
   // Each piece is said, the last one too. The finished word follows once it ends.
-  audio.play(c.type === 'build' ? [soundClip(c.tray[i])] : [partClip(c.tray[i])]);
+  audio.play(c.type === 'build' ? [nameClip(c.tray[i])] : [partClip(c.tray[i])]);
   if (st.placed >= total) return finishChallenge([], true);
   render();
 }

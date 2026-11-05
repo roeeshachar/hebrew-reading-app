@@ -1,5 +1,5 @@
 // Offline shell. Bump VERSION when files change so phones pick up the new copy.
-const VERSION = 'v12';
+const VERSION = 'v13';
 const ART = ['bubble-blue','bubble-pink','bubble-green','cannon-base','cannon-barrel','monster-happy','monster-oh','monster-sad','dragon','icon-starts','icon-bubbles','icon-build','icon-read','star','house','trophy'];
 const WORD_ART = ['banana', 'bayit', 'gamal', 'gezer', 'glida', 'delet', 'dag', 'dov', 'halicopter', 'zebra', 'zman', 'chatul', 'chalon', 'tayil', 'yeled', 'yareach', 'kelev', 'kadur', 'limon', 'lev', 'mayim', 'mechonit', 'nachash', 'naal', 'sus', 'sefer', 'etz', 'anan', 'pil', 'perach', 'tsfardea', 'kof', 'kafe', 'rakevet', 'radio', 'shemesh', 'shualcha', 'tapuz', 'tut', 'arye', 'avatiach'];
 const SHELL = [

@@ -229,3 +229,13 @@ test('a spelled word we know is found by its pointed text', async () => {
   assert.equal(wordIdByNikud('בָּנָנָה'), 'banana');
   assert.equal(wordIdByNikud('שקלקל'), null);
 });
+
+test('every pointed word splits into one piece per letter, in line with the plain spelling', async () => {
+  const { wordClusters } = await import('../src/content.js');
+  const strip = (s) => s.replace(/[\u0591-\u05C7]/g, '');
+  for (const w of WORDS) {
+    const parts = wordClusters(w.id);
+    assert.equal(parts.length, [...w.he].length, `${w.id}: ${parts.length} pieces`);
+    assert.equal(parts.map(strip).join(''), w.he, w.id);
+  }
+});

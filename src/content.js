@@ -129,3 +129,7 @@ export const NAME_WORD_IDS = WORDS.filter((w) => stripNikud(LETTER_NAME[w.letter
 const loose = (t) => t.replace(/\u05BC/g, '');
 export const WORD_BY_NIKUD = new Map(Object.entries(WORD_NIKUD).map(([id, t]) => [loose(t), id]));
 export const wordIdByNikud = (text) => WORD_BY_NIKUD.get(loose(text)) || null;
+
+// A pointed word split into one piece per letter, each letter with its own marks, so the
+// pieces line up with the letters of the plain spelling (the slots of a game).
+export const wordClusters = (id) => (WORD_NIKUD[id].match(/[\u05D0-\u05EA][\u0591-\u05C7]*/g) || []);
