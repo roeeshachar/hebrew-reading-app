@@ -1,4 +1,4 @@
-import { LETTERS, LETTER_ID, VOWELS, LETTER_NAME, SOUND_TEXT, PART_CLIPS } from './content.js';
+import { LETTERS, LETTER_ID, VOWELS, LETTER_NAME, SOUND_TEXT, PART_CLIPS, wordIdByNikud } from './content.js';
 import { MAX_TOKENS, makeToken, addToken, removeLast, applyVowel, display } from './lab-logic.js';
 import { buildSession, buildAccepts, syllableAccepts, MODES } from './challenges.js';
 import * as audio from './audio.js';
@@ -390,7 +390,11 @@ function playLab() {
     // A letter with no vowel has no clip, so a sequence containing one is read whole by the device voice.
     return [vowel ? `syllable/${LETTER_ID[letter]}-${vowel.id}` : null, t];
   });
-  audio.playSequence(parts, display(lab.seq));
+  const shown = display(lab.seq);
+  const known = wordIdByNikud(shown);
+  // A word we have a recording of is played whole; anything else is blended from its syllables.
+  if (known && audio.hasClip(`word/${known}`)) return audio.play([[`word/${known}`, shown]]);
+  audio.playSequence(parts, shown);
 }
 
 // ---- events ----
@@ -417,11 +421,18 @@ app.addEventListener('click', (e) => {
 document.addEventListener('pointerdown', () => { audio.state.unlocked = true; }, { once: true });
 
 // Test hook: the state of the lab, for automated checks.
+window.__audioState = audio.state;
 window.__lab = () => ({ seq: lab.seq, shown: display(lab.seq) });
 window.__challenge = () => session && { mode: session.mode, i: session.i, c: session.cs[session.i], st: session.st };
 
 audio.init().then(render);
 render();
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // When a new version takes over, reload once so the child never keeps playing the old one.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && !reloaded) { reloaded = true; location.reload(); }
+  });
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }

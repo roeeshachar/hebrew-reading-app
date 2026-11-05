@@ -208,3 +208,24 @@ test('the Pages workflow publishes every folder the app loads from', async () =>
   // index.html, the stylesheet and the manifest too
   for (const f of ['index.html', 'styles.css', 'sw.js', 'manifest.webmanifest']) assert.ok(copy.includes(f), `${f} is missing from the Pages copy step`);
 });
+
+test('syllable blending: silence is trimmed and pieces overlap', async () => {
+  const { trimBounds, blendPlan } = await import('../src/blend.js');
+  const rate = 1000;
+  const clip = new Float32Array(1000); for (let i = 300; i < 600; i++) clip[i] = 0.5; // sound from 0.3 s to 0.6 s
+  const [s, e] = trimBounds(clip, rate);
+  assert.ok(s > 0.28 && s <= 0.3 && e >= 0.6 && e < 0.63, `${s} ${e}`);
+  assert.deepEqual(trimBounds(new Float32Array(500), rate), [0, 0.5], 'a silent clip is left alone');
+  const plan = blendPlan([0.3, 0.4, 0.5], 0.03);
+  assert.deepEqual(plan.starts.map((x) => +x.toFixed(2)), [0, 0.27, 0.64]);
+  assert.equal(+plan.total.toFixed(2), 1.14);
+  assert.equal(blendPlan([]).total, 0);
+});
+
+test('a spelled word we know is found by its pointed text', async () => {
+  const { wordIdByNikud } = await import('../src/content.js');
+  assert.equal(wordIdByNikud('דֶּלֶת'), 'delet');
+  assert.equal(wordIdByNikud('דֶלֶת'), 'delet', 'the dagesh does not matter');
+  assert.equal(wordIdByNikud('בָּנָנָה'), 'banana');
+  assert.equal(wordIdByNikud('שקלקל'), null);
+});

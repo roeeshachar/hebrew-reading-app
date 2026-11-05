@@ -2,10 +2,12 @@
 // voice (speechSynthesis) is the fallback. Clips are listed in audio/manifest.json,
 // so adding a recording needs no code change.
 
+import { trimBounds, blendPlan } from './blend.js';
+
 let clips = new Set();
 let current = null;
 let runId = 0;
-export const state = { ttsAvailable: true, unlocked: false };
+export const state = { ttsAvailable: true, unlocked: false, lastBlend: null };
 
 export async function init() {
   try {
@@ -34,6 +36,8 @@ export const hasClip = (key) => clips.has(key);
 
 export function stop() {
   runId++;
+  for (const s of blendSources) { try { s.stop(); } catch { /* already done */ } }
+  blendSources = [];
   if (current) { current.pause(); current = null; }
   try { speechSynthesis.cancel(); } catch { /* ignore */ }
 }
@@ -85,9 +89,57 @@ export function play(items, { queue = false } = {}) {
   return run;
 }
 
-// Whole-sequence playback for the Word Lab: blend recorded syllables when every
-// piece exists, otherwise let the device voice read the full text naturally.
+// ---- running recorded syllables together ----
+let ctx = null;
+let blendSources = [];
+const decoded = new Map(); // clip key -> { buf, start, end }
+
+async function loadForBlend(key) {
+  if (decoded.has(key)) return decoded.get(key);
+  const res = await fetch(`audio/${key}.mp3`);
+  if (!res.ok) throw new Error('missing clip');
+  const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+  const [start, end] = trimBounds(buf.getChannelData(0), buf.sampleRate);
+  const item = { buf, start, end };
+  decoded.set(key, item);
+  return item;
+}
+
+// Plays the clips as one flowing sound: silence trimmed, pieces overlapping slightly, soft edges.
+async function playBlend(keys) {
+  stop();
+  const id = runId;
+  ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') await ctx.resume();
+  const items = await Promise.all(keys.map(loadForBlend));
+  if (id !== runId) return;
+  const durs = items.map((i) => i.end - i.start);
+  const plan = blendPlan(durs);
+  const t0 = ctx.currentTime + 0.04;
+  items.forEach((it, i) => {
+    const src = ctx.createBufferSource();
+    const g = ctx.createGain();
+    const t = t0 + plan.starts[i], d = durs[i], fade = Math.min(0.02, d / 3);
+    src.buffer = it.buf;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(1, t + fade);
+    g.gain.setValueAtTime(1, t + d - fade);
+    g.gain.linearRampToValueAtTime(0, t + d);
+    src.connect(g).connect(ctx.destination);
+    src.start(t, it.start, d);
+    blendSources.push(src);
+  });
+  state.lastBlend = { count: items.length, total: plan.total };
+  await new Promise((r) => setTimeout(r, (plan.total + 0.08) * 1000));
+}
+
+// Whole-sequence playback for the Word Lab: blend recorded syllables when every piece
+// exists (a known word is played from its own clip by the caller), otherwise let the
+// device voice read the full text.
 export function playSequence(parts, fullText) {
-  if (parts.length && parts.every(([key]) => clips.has(key))) return play(parts);
+  if (parts.length && parts.every(([key]) => clips.has(key))) {
+    const keys = parts.map(([key]) => key);
+    return playBlend(keys).catch(() => play(parts));
+  }
   return play([[null, fullText]]);
 }

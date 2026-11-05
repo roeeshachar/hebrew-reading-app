@@ -17,14 +17,15 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || 
 const errors = [];
 let failed = false;
 try {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
   // The repository now holds real recordings; the test wants the fake voice so it can read what is said.
   await ctx.route('**/audio/manifest.json', (r) => r.fulfill({ json: { clips: [] } }));
   const page = await ctx.newPage();
   // This page plays with the flat pictures; software WebGL in a test browser is too slow to chase bubbles.
   await page.route('**/vendor/gl3d.js', (r) => r.abort());
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  // (the 3D file is blocked on purpose on this page, which logs one failed load)
+  page.on('console', (m) => m.type() === 'error' && !/ERR_FAILED/.test(m.text()) && errors.push(m.text()));
   // Spoken text is recorded instead of played, so the test can check what would be said.
   await page.addInitScript(() => {
     window.__said = [];
@@ -315,6 +316,41 @@ try {
   await p6.waitForTimeout(1500);
   await p6.screenshot({ path: `${out}/gl-boss.png` });
   await p6.close();
+
+  // --- recorded syllables are blended into one sound; a known word plays from its own clip ---
+  const wav = (() => { // 0.3 s of silence, 0.2 s of tone, 0.3 s of silence
+    const rate = 8000, n = rate * 0.8, b = Buffer.alloc(44 + n * 2);
+    b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22);
+    b.writeUInt32LE(rate, 24); b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+    for (let i = 0; i < n; i++) { const t = i / rate; b.writeInt16LE(t > 0.3 && t < 0.5 ? Math.round(Math.sin(t * 2 * Math.PI * 440) * 12000) : 0, 44 + i * 2); }
+    return b;
+  })();
+  const p7 = await ctx.newPage();
+  const asked = [];
+  await p7.route('**/audio/manifest.json', (r) => r.fulfill({ json: { clips: ['syllable/dalet-segol', 'syllable/lamed-segol', 'word/delet'] } }));
+  await p7.route('**/audio/**/*.mp3', (r) => { asked.push(new URL(r.request().url()).pathname.split('/audio/')[1]); r.fulfill({ body: wav, contentType: 'audio/mpeg' }); });
+  await p7.goto(base + '#lab');
+  await p7.waitForSelector('.keys');
+  await p7.click('[data-k=ד]'); await p7.click('[data-v=segol]');
+  await p7.click('[data-k=ל]'); await p7.click('[data-v=segol]');
+  asked.length = 0;
+  await p7.click('[data-play]');
+  await p7.waitForFunction(() => window.__audioState.lastBlend, null, { timeout: 8000 });
+  const blend = await p7.evaluate(() => window.__audioState.lastBlend);
+  assert.equal(blend.count, 2, 'two syllables were blended');
+  assert.ok(blend.total < 2 * 0.6 - 0.03 + 0.1, `the pieces overlap and the silence is trimmed (${blend.total}s)`);
+  // spell a word we have a recording of: דֶלֶת
+  await p7.click('[data-clr]');
+  await p7.click('[data-k=ד]'); await p7.click('[data-v=segol]');
+  await p7.click('[data-k=ל]'); await p7.click('[data-v=segol]');
+  await p7.click('[data-k=ת]');
+  asked.length = 0;
+  await p7.evaluate(() => { window.__audioState.lastBlend = null; });
+  await p7.click('[data-play]');
+  await p7.waitForTimeout(800);
+  assert.ok(asked.some((a) => a.startsWith('word/delet')), `the whole-word clip is used (${asked})`);
+  assert.equal(await p7.evaluate(() => window.__audioState.lastBlend), null, 'no blending for a known word');
+  await p7.close();
 
   // --- a phone without WebGL still plays the bubbles with the flat pictures ---
   const p4 = await ctx.newPage();

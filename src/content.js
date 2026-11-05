@@ -123,3 +123,9 @@ export const PART_CLIPS = (() => {
 // letter's name would give the answer away, so "what starts with…" never asks for them.
 const stripNikud = (t) => t.replace(/[\u0591-\u05C7]/g, '');
 export const NAME_WORD_IDS = WORDS.filter((w) => stripNikud(LETTER_NAME[w.letter] || '') === w.he).map((w) => w.id);
+
+// Whole words by their pointed spelling (without dagesh, so בּ and ב match), so the word lab can
+// play a real recording when the child has spelled a word we know.
+const loose = (t) => t.replace(/\u05BC/g, '');
+export const WORD_BY_NIKUD = new Map(Object.entries(WORD_NIKUD).map(([id, t]) => [loose(t), id]));
+export const wordIdByNikud = (text) => WORD_BY_NIKUD.get(loose(text)) || null;
