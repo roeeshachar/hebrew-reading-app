@@ -195,3 +195,16 @@ test('every word has a picture, and the offline cache lists them all', async () 
   }
   assert.equal(files.size, WORDS.length, 'no leftover pictures');
 });
+
+test('the Pages workflow publishes every folder the app loads from', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const sw = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
+  const yml = await readFile(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
+  const copy = yml.split('\n').find((l) => l.includes('cp -r'));
+  assert.ok(copy, 'the workflow copies the site files');
+  const folders = new Set([...sw.matchAll(/'([a-z]+)\/[^']+'/g)].map((m) => m[1]));
+  for (const f of ['assets', 'src', 'fonts', 'icons', 'vendor', 'audio']) folders.add(f); // the app also loads these
+  for (const f of folders) assert.ok(new RegExp(`\\b${f}\\b`).test(copy), `${f}/ is missing from the Pages copy step`);
+  // index.html, the stylesheet and the manifest too
+  for (const f of ['index.html', 'styles.css', 'sw.js', 'manifest.webmanifest']) assert.ok(copy.includes(f), `${f} is missing from the Pages copy step`);
+});
