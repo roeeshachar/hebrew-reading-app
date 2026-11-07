@@ -1,0 +1,10 @@
+{
+  "appId": "com.roeeshachar.readingworld",
+  "appName": "עולם הקריאה",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#dff3fb",
+    "limitsNavigationsToAppBoundDomains": false
+  }
+}

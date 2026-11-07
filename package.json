@@ -11,9 +11,14 @@
     "recording-list": "node tools/recording-list.mjs",
     "audio-manifest": "node tools/audio-manifest.mjs",
     "generate-audio": "node tools/generate-audio.mjs",
-    "build:3d": "node tools/three/build.mjs"
+    "build:3d": "node tools/three/build.mjs",
+    "ios:sync": "node scripts/build-www.mjs && cap sync ios",
+    "ios:open": "npm run ios:sync && cap open ios"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
     "esbuild": "^0.28.2",
     "playwright": "^1.64.0",
     "three": "^0.160.0"

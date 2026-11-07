@@ -2,3 +2,7 @@
 node_modules/
 test/shots/
 .env
+www/
+ios/App/App/public
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml

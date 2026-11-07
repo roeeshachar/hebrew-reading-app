@@ -3,9 +3,22 @@
 // Resolves with { alternatives: string[], error: string|null }; it never rejects.
 
 const Recognition = () => window.SpeechRecognition || window.webkitSpeechRecognition;
-export const canListen = () => !!Recognition();
+// Inside the iPhone app the web view has no speech recognition, so the native plugin listens instead.
+const native = () => (window.Capacitor?.isNativePlatform?.() ? window.Capacitor.registerPlugin('Speech') : null);
+export const canListen = () => !!native() || !!Recognition();
+
+async function listenNative(plugin, lang, timeoutMs) {
+  try {
+    const out = await plugin.listen({ lang, timeoutMs });
+    return { alternatives: out.alternatives || [], error: out.error || null };
+  } catch {
+    return { alternatives: [], error: 'error' };
+  }
+}
 
 export function listenOnce({ lang = 'he-IL', timeoutMs = 8000 } = {}) {
+  const plugin = native();
+  if (plugin) return listenNative(plugin, lang, timeoutMs);
   return new Promise((resolve) => {
     const R = Recognition();
     if (!R) return resolve({ alternatives: [], error: 'unsupported' });

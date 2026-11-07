@@ -432,7 +432,7 @@ window.__challenge = () => session && { mode: session.mode, i: session.i, c: ses
 
 audio.init().then(render);
 render();
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+if ('serviceWorker' in navigator && location.protocol !== 'file:' && !window.Capacitor?.isNativePlatform?.()) {
   // When a new version takes over, reload once so the child never keeps playing the old one.
   const hadController = !!navigator.serviceWorker.controller;
   let reloaded = false;
